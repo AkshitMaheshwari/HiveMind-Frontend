@@ -2,29 +2,37 @@
 
 import React, { useState, useEffect } from 'react';
 import { Navbar } from '@/components/Navbar';
-import { Sidebar } from '@/components/Sidebar';
-import { ChatThread } from '@/components/ChatThread';
-import { AdminView } from '@/components/AdminView';
 import { AuthModal } from '@/components/AuthModal';
+import { ModelSelector, ModelConfig } from '@/components/ModelSelector';
 import { supabase } from '@/lib/supabase';
+import { HiveMindCanvas } from '@/components/HiveMindCanvas';
+import { AgentNetworkGrid } from '@/components/AgentNetworkGrid';
+import { Sparkles, ArrowRight } from 'lucide-react';
+import Link from 'next/link';
+import { SystemCapabilities } from '@/components/SystemCapabilities';
 
-interface ChatMessage {
-  id: string;
-  role: 'user' | 'assistant' | 'thinking';
-  content?: string;
-  events?: any[];
-}
-
-export default function Home() {
+export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'chat' | 'admin'>('chat');
+  const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+  const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
 
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [ws, setWs] = useState<WebSocket | null>(null);
+  // Load saved model config
+  useEffect(() => {
+    const savedKeys = localStorage.getItem('hivemind_api_keys');
+    const savedModel = localStorage.getItem('hivemind_selected_model');
+    const savedProvider = localStorage.getItem('hivemind_selected_provider');
+    const savedModelName = localStorage.getItem('hivemind_selected_model_name');
+    if (savedKeys && savedModel && savedProvider) {
+      const keys = JSON.parse(savedKeys);
+      setModelConfig({
+        provider: savedProvider as any,
+        modelId: savedModel,
+        modelName: savedModelName || savedModel,
+        apiKey: keys[savedProvider] || '',
+      });
+    }
+  }, []);
 
   // Fetch Supabase Session
   useEffect(() => {
@@ -43,153 +51,19 @@ export default function Home() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch user task history
-  const fetchTasks = async () => {
-    try {
-      const headers: Record<string, string> = {};
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      const res = await fetch('http://localhost:8000/api/tasks', { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setTasks(data);
-      }
-    } catch (e) {
-      console.error('Failed to fetch tasks:', e);
-    }
-  };
-
-  useEffect(() => {
-    fetchTasks();
-  }, [user]);
-
-  // Load single task details
-  const handleSelectTask = async (taskId: string) => {
-    setActiveTaskId(taskId);
-    setLoading(true);
-    try {
-      const headers: Record<string, string> = {};
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      const res = await fetch(`http://localhost:8000/api/task/${taskId}`, { headers });
-      if (res.ok) {
-        const task = await res.json();
-        if (task && !task.error) {
-          const newMessages: ChatMessage[] = [];
-          if (task.user_request) {
-            newMessages.push({ id: 'req', role: 'user', content: task.user_request });
-          }
-          if (task.final_output) {
-            newMessages.push({
-              id: 'res',
-              role: 'assistant',
-              content: task.final_output,
-              events: task.events || [],
-            });
-          }
-          setMessages(newMessages);
-        }
-      }
-    } catch (e) {
-      console.error('Failed to load task details:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleNewChat = () => {
-    setActiveTaskId(null);
-    setMessages([]);
-    if (ws) ws.close();
-  };
-
-  // Submit Prompt to Start Task
-  const handleSubmitPrompt = async (prompt: string) => {
-    setLoading(true);
-    const userMsgId = Date.now().toString();
-    setMessages((prev) => [...prev, { id: userMsgId, role: 'user', content: prompt }]);
-    setMessages((prev) => [...prev, { id: 'thinking', role: 'thinking' }]);
-
-    try {
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.access_token) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      const res = await fetch('http://localhost:8000/api/chat', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ message: prompt }),
-      });
-
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const taskId = data.task_id;
-      setActiveTaskId(taskId);
-
-      // Refresh task list
-      fetchTasks();
-
-      // Connect WebSocket
-      const socket = new WebSocket(`ws://localhost:8000/ws/${taskId}`);
-      setWs(socket);
-
-      let eventsList: any[] = [];
-      let finalReport = '';
-
-      socket.onmessage = (event) => {
-        try {
-          const parsed = JSON.parse(event.data);
-          eventsList.push(parsed);
-
-          if (parsed.event === 'final_output') {
-            finalReport = parsed.data || '';
-          }
-
-          if (parsed.event === 'task_done') {
-            setMessages((prev) =>
-              prev.filter((m) => m.id !== 'thinking').concat([
-                {
-                  id: taskId,
-                  role: 'assistant',
-                  content: finalReport || 'Task completed successfully.',
-                  events: eventsList,
-                },
-              ])
-            );
-            setLoading(false);
-            fetchTasks();
-          }
-        } catch (e) {
-          console.error('Error parsing WS message:', e);
-        }
-      };
-
-      socket.onerror = () => {
-        setLoading(false);
-      };
-    } catch (e: any) {
-      setMessages((prev) =>
-        prev.filter((m) => m.id !== 'thinking').concat([
-          { id: 'err', role: 'assistant', content: `❌ **Error starting task:** ${e.message}` },
-        ])
-      );
-      setLoading(false);
-    }
-  };
-
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setMessages([]);
-    setTasks([]);
+  };
+
+  const handleSaveModel = (config: ModelConfig) => {
+    setModelConfig(config);
+    localStorage.setItem('hivemind_selected_model', config.modelId);
+    localStorage.setItem('hivemind_selected_provider', config.provider);
+    localStorage.setItem('hivemind_selected_model_name', config.modelName);
+    const existingKeys = JSON.parse(localStorage.getItem('hivemind_api_keys') || '{}');
+    existingKeys[config.provider] = config.apiKey;
+    localStorage.setItem('hivemind_api_keys', JSON.stringify(existingKeys));
   };
 
   return (
@@ -198,30 +72,46 @@ export default function Home() {
         user={user}
         onOpenAuth={() => setAuthModalOpen(true)}
         onSignOut={handleSignOut}
-        onOpenSettings={() => alert('API Keys can be configured in your browser localStorage or via .env')}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        onOpenSettings={() => setModelSelectorOpen(true)}
+        activeTab="dashboard"
+        setActiveTab={(t) => {
+          if (t === 'admin') window.location.href = '/chat?tab=admin';
+          else if (t === 'chat') window.location.href = '/chat';
+        }}
+        selectedModelName={modelConfig?.modelName}
       />
 
-      <div className="flex flex-1 overflow-hidden">
-        {activeTab === 'chat' ? (
-          <>
-            <Sidebar
-              tasks={tasks}
-              activeTaskId={activeTaskId}
-              onSelectTask={handleSelectTask}
-              onNewChat={handleNewChat}
-              user={user}
-            />
-            <ChatThread
-              messages={messages}
-              onSubmitPrompt={handleSubmitPrompt}
-              loading={loading}
-            />
-          </>
-        ) : (
-          <AdminView user={user} />
-        )}
+      <div className="flex-1 overflow-y-auto p-8 bg-slate-950/50">
+        <div className="max-w-5xl mx-auto space-y-8">
+          
+          {/* Interactive Hero Banner with Canvas Particles */}
+          <div className="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border border-slate-800 p-8 shadow-2xl amber-glow">
+            <HiveMindCanvas />
+            <div className="relative z-10 max-w-2xl">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-4">
+                <Sparkles className="w-3.5 h-3.5" /> Autonomous Multi-Agent Swarm
+              </div>
+              <h1 className="text-3xl font-extrabold text-slate-100 tracking-tight mb-3">
+                HiveMind AI Orchestrator
+              </h1>
+              <p className="text-sm text-slate-300 leading-relaxed mb-8 max-w-xl">
+                Experience next-generation multi-agent execution. Delegate complex web generation, data engineering, SEO copywriting, and deep research to specialized autonomous AI departments working in parallel.
+              </p>
+
+              <Link href="/chat" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-md transition-all shadow-amber-500/20 hover:shadow-amber-500/40">
+                Go to Tasks & Chat
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Agent Swarm Network Grid */}
+          <AgentNetworkGrid events={[]} />
+
+          {/* System Upgrades showcase */}
+          <SystemCapabilities />
+          
+        </div>
       </div>
 
       <AuthModal
@@ -229,8 +119,14 @@ export default function Home() {
         onClose={() => setAuthModalOpen(false)}
         onSuccess={(u) => {
           setUser(u);
-          fetchTasks();
         }}
+      />
+
+      <ModelSelector
+        isOpen={modelSelectorOpen}
+        onClose={() => setModelSelectorOpen(false)}
+        onSave={handleSaveModel}
+        currentConfig={modelConfig}
       />
     </div>
   );

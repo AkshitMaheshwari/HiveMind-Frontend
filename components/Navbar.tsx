@@ -1,15 +1,16 @@
 'use client';
 
 import React from 'react';
-import { User, LogIn, LogOut, Shield, Key, Sparkles, Layers } from 'lucide-react';
+import { User, LogIn, LogOut, Shield, Key, Sparkles, Layers, ChevronDown, Library } from 'lucide-react';
 
 interface NavbarProps {
   user: any;
   onOpenAuth: () => void;
   onSignOut: () => void;
   onOpenSettings: () => void;
-  activeTab: 'chat' | 'admin';
-  setActiveTab: (tab: 'chat' | 'admin') => void;
+  activeTab: 'dashboard' | 'chat' | 'admin' | 'documents';
+  setActiveTab: (tab: 'dashboard' | 'chat' | 'admin' | 'documents') => void;
+  selectedModelName?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -19,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSettings,
   activeTab,
   setActiveTab,
+  selectedModelName,
 }) => {
   const isAdmin = user?.role === 'admin' || user?.user_metadata?.role === 'admin';
 
@@ -43,6 +45,18 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Center Tabs: Main Chat vs Admin View */}
       <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
         <button
+          onClick={() => setActiveTab('dashboard')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            activeTab === 'dashboard'
+              ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Layers className="w-3.5 h-3.5" />
+          Dashboard
+        </button>
+
+        <button
           onClick={() => setActiveTab('chat')}
           className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
             activeTab === 'chat'
@@ -50,8 +64,20 @@ export const Navbar: React.FC<NavbarProps> = ({
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
           }`}
         >
-          <Layers className="w-3.5 h-3.5" />
-          Agent Dashboard
+          <Sparkles className="w-3.5 h-3.5" />
+          Chat & Tasks
+        </button>
+
+        <button
+          onClick={() => setActiveTab('documents')}
+          className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            activeTab === 'documents'
+              ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+          }`}
+        >
+          <Library className="w-3.5 h-3.5" />
+          My Documents
         </button>
 
         {isAdmin && (
@@ -69,14 +95,22 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </div>
 
-      {/* Right Controls: API Keys & Auth */}
+      {/* Right Controls: Model Selector & Auth */}
       <div className="flex items-center gap-3">
+        {/* Model Selector Button */}
         <button
           onClick={onOpenSettings}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/60 hover:bg-slate-800 text-slate-300 border border-slate-700/60 transition-all"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-all group"
         >
           <Key className="w-3.5 h-3.5 text-amber-400" />
-          API Keys
+          {selectedModelName ? (
+            <span className="flex items-center gap-1.5 text-slate-200">
+              <span className="max-w-[120px] truncate">{selectedModelName}</span>
+              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-slate-300" />
+            </span>
+          ) : (
+            <span className="text-slate-300">Select Model</span>
+          )}
         </button>
 
         {user ? (
