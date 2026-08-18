@@ -112,9 +112,12 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Fast and versatile performance' },
           ],
           groq: [
-            { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B Versatile', description: 'Best quality Llama on Groq' },
-            { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B Instant', description: 'Ultra-fast, 500k TPD' },
-            { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B', description: '32k context, mixture of experts' },
+            { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', description: 'Flagship open-weights on Groq, 500 T/s, 131k context' },
+            { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B', description: 'Ultra-fast open weights on Groq, 1000 T/s, 131k context' },
+            { id: 'qwen/qwen3.6-27b', name: 'Qwen 3.6 27B', description: 'Alibaba reasoning model, 131k context, tools support' },
+            { id: 'groq/compound', name: 'Groq Compound', description: 'Groq engineered multi-agent system, 131k context' },
+            { id: 'groq/compound-mini', name: 'Compound Mini', description: 'Fast lightweight compound model, 131k context' },
+            { id: 'allam-2-7b', name: 'ALLaM 2 7B', description: 'SDAIA bilingual Arabic/English model, 4k context' },
           ],
           openai: [
             { id: 'gpt-4o', name: 'GPT-4o', description: 'Best OpenAI model, multimodal' },
