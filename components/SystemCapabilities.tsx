@@ -2,8 +2,8 @@
 
 import React, { useState } from 'react';
 import {
-  Layers, Database, FileSearch, Zap, ChevronDown, ChevronUp,
-  CheckCircle2, ArrowUpRight, Box, ShieldCheck, RefreshCcw
+  Compass, Share2, FileSearch, Sparkles, Zap, ChevronDown, ChevronUp,
+  CheckCircle2, ShieldCheck, RefreshCcw, Layers, Database
 } from 'lucide-react';
 
 interface Capability {
@@ -19,57 +19,72 @@ interface Capability {
 
 const capabilities: Capability[] = [
   {
-    icon: <Layers className="w-5 h-5" />,
-    label: 'Tool Registry',
-    tag: 'NEW',
+    icon: <Compass className="w-5 h-5" />,
+    label: '10 Autonomous Departments',
+    tag: 'EXPANDED',
     tagColor: 'text-amber-400 bg-amber-400/10 border-amber-400/25',
-    description: 'Central registry for all agent tools — no more hardcoded imports.',
+    description: '40+ specialized agents covering Strategy, Legal, Sales, Design, RAG, Code, and Analytics.',
     bullets: [
-      'Register once, available to all departments',
-      'Tag-based filtering (research / content / code)',
-      'ToolSpec validation at startup — zero silent failures',
-      'Adding a new tool = 1 file + 1 line',
+      'Business Strategy (SWOT, TAM/SAM/SOM, 9-slide pitch decks)',
+      'Legal & Compliance (Clause review, ToS drafting, GDPR/SOC2)',
+      'Sales & Outreach (Lead profiling, cold email & follow-ups)',
+      'Brand & Design (Brand guidelines & DALL-E 3 mockups)',
     ],
     accent: 'from-amber-500/20 to-amber-600/5',
     glow: 'border-amber-500/20 hover:border-amber-500/40',
   },
   {
-    icon: <FileSearch className="w-5 h-5" />,
-    label: 'RAG Pipeline',
-    tag: 'NEW',
-    tagColor: 'text-violet-400 bg-violet-400/10 border-violet-400/25',
-    description: 'Upload your documents — agents answer questions from them instantly.',
+    icon: <Share2 className="w-5 h-5" />,
+    label: 'Inter-Dept Hive Mind',
+    tag: 'NEW ARCH',
+    tagColor: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/25',
+    description: 'Agents seamlessly call sister departments directly without CEO bottlenecks.',
     bullets: [
-      'Sentence-aware chunking (no mid-sentence cuts)',
-      'OpenAI embeddings with tenacity retry / backoff',
+      'Strategy dept calls Research dept directly for market data',
+      'Sales dept calls Research dept for prospect intelligence',
+      'Strategy dept reuses Code dept sandbox for financial models',
+      'Zero tool duplication — unified agent capabilities',
+    ],
+    accent: 'from-emerald-500/20 to-emerald-600/5',
+    glow: 'border-emerald-500/20 hover:border-emerald-500/40',
+  },
+  {
+    icon: <FileSearch className="w-5 h-5" />,
+    label: 'RAG Document Engine',
+    tag: 'PRODUCTION',
+    tagColor: 'text-violet-400 bg-violet-400/10 border-violet-400/25',
+    description: 'Upload PDFs, Excel, CSV — agents answer questions with strict chunk citations.',
+    bullets: [
+      'Sentence-aware chunking (zero mid-sentence cuts)',
+      'Vector embeddings with tenacity retry / backoff',
       'User-scoped search (server-side Qdrant filter)',
-      'Atomic ingestion — fail = zero chunks stored',
+      'Atomic ingestion — 50MB file size limit',
     ],
     accent: 'from-violet-500/20 to-violet-600/5',
     glow: 'border-violet-500/20 hover:border-violet-500/40',
   },
   {
-    icon: <Database className="w-5 h-5" />,
-    label: 'Connector Interface',
-    tag: 'NEW',
-    tagColor: 'text-sky-400 bg-sky-400/10 border-sky-400/25',
-    description: 'Plug any data source into the RAG pipeline with one class.',
+    icon: <Sparkles className="w-5 h-5" />,
+    label: 'Visual & Code Sandbox',
+    tag: 'LIVE',
+    tagColor: 'text-fuchsia-400 bg-fuchsia-400/10 border-fuchsia-400/25',
+    description: 'DALL-E 3 image generation, Python sandbox execution, and live HTML preview.',
     bullets: [
-      'PDF → full text extraction via pypdf',
-      'Excel → per-sheet Document objects (openpyxl)',
-      'CSV → structured row extraction',
-      '50 MB limit, typed errors, user-facing messages',
+      'Automated logo mockups & design asset generation',
+      'Python code execution sandbox with security filters',
+      'Interactive Recharts for analytics and financials',
+      'Live iframe preview for generated web applications',
     ],
-    accent: 'from-sky-500/20 to-sky-600/5',
-    glow: 'border-sky-500/20 hover:border-sky-500/40',
+    accent: 'from-fuchsia-500/20 to-fuchsia-600/5',
+    glow: 'border-fuchsia-500/20 hover:border-fuchsia-500/40',
   },
 ];
 
 const guarantees = [
-  { icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />, text: 'CEO routing logic untouched' },
-  { icon: <RefreshCcw className="w-4 h-4 text-amber-400" />, text: 'All existing imports still work (compat shim)' },
-  { icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />, text: '49 / 49 unit tests passing' },
-  { icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />, text: 'User data isolation at DB level (not app code)' },
+  { icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />, text: 'CEO router analyzes intent & dispatches subtasks' },
+  { icon: <RefreshCcw className="w-4 h-4 text-amber-400" />, text: 'Real-time WebSocket event streaming to UI' },
+  { icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />, text: 'User document isolation at database vector level' },
+  { icon: <ShieldCheck className="w-4 h-4 text-emerald-400" />, text: 'Automatic resilient multi-LLM fallback (Groq / Gemini / OpenAI)' },
 ];
 
 const CapabilityCard: React.FC<{ cap: Capability; index: number }> = ({ cap, index }) => {
@@ -148,7 +163,7 @@ export const SystemCapabilities: React.FC = () => {
       </div>
 
       {/* Capability cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {capabilities.map((cap, i) => (
           <CapabilityCard key={cap.label} cap={cap} index={i} />
         ))}

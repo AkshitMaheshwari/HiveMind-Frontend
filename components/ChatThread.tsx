@@ -262,65 +262,85 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4 w-full max-w-2xl mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-4xl mt-4">
               <button
-                onClick={() => handleExampleClick("Build a modern landing page for my college fest using Next.js and Tailwind CSS.")}
-                className="p-4 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+                onClick={() => handleExampleClick("Create a 3-year go-to-market strategy, competitive analysis, and pitch deck for an AI analytics startup.")}
+                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
               >
-                <div className="font-semibold text-amber-400 text-sm mb-1 group-hover:translate-x-0.5 transition-transform">
-                  🌐 UI Generation
+                <div className="font-semibold text-amber-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
+                  🏢 Business Strategy
                 </div>
-                <div className="text-xs text-slate-400">Build a modern landing page for my college fest.</div>
+                <div className="text-[11px] text-slate-400">GTM plans, SWOT matrix, and 9-slide investor pitch decks.</div>
               </button>
 
               <button
-                onClick={() => handleExampleClick("Write a Python script to scrape news articles.")}
-                className="p-4 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+                onClick={() => handleExampleClick("Review this SaaS service agreement for liability risks and draft a GDPR compliance checklist.")}
+                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-violet-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
               >
-                <div className="font-semibold text-emerald-400 text-sm mb-1 group-hover:translate-x-0.5 transition-transform">
-                  🐍 Python Scripting
+                <div className="font-semibold text-violet-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
+                  ⚖️ Legal & Compliance
                 </div>
-                <div className="text-xs text-slate-400">Write a Python web scraper for news articles.</div>
+                <div className="text-[11px] text-slate-400">Contract clause reviews, ToS drafting, and regulatory checklists.</div>
               </button>
 
               <button
-                onClick={() => handleExampleClick("What is the TRACER arxiv paper about?")}
-                className="p-4 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+                onClick={() => handleExampleClick("Write a 4-email personalized cold outreach sequence targeting enterprise CTOs with objection handling.")}
+                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-rose-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
               >
-                <div className="font-semibold text-blue-400 text-sm mb-1 group-hover:translate-x-0.5 transition-transform">
-                  🔬 Research
+                <div className="font-semibold text-rose-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
+                  📧 Sales & Outreach
                 </div>
-                <div className="text-xs text-slate-400">Ask about arxiv papers, topics, or research.</div>
+                <div className="text-[11px] text-slate-400">Lead profiling, high-converting copy, and follow-up cadences.</div>
               </button>
 
               <button
-                onClick={() => handleExampleClick("Write a compelling blog post about the future of AI agents.")}
-                className="p-4 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+                onClick={() => handleExampleClick("Create a complete brand identity guide with hex palettes, typography, and logo concepts for a modern fintech app.")}
+                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-fuchsia-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
               >
-                <div className="font-semibold text-purple-400 text-sm mb-1 group-hover:translate-x-0.5 transition-transform">
-                  ✍️ Content
+                <div className="font-semibold text-fuchsia-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
+                  🎨 Brand & Design
                 </div>
-                <div className="text-xs text-slate-400">Blog posts, copywriting, and SEO content.</div>
+                <div className="text-[11px] text-slate-400">Design systems, logo concepts, and visual guidelines.</div>
               </button>
 
               <button
-                onClick={() => handleExampleClick("Analyze AAPL fundamentals and technical indicators.")}
-                className="p-4 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+                onClick={() => handleExampleClick("Search my uploaded documents and summarize the key clauses and SLA commitments.")}
+                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-sky-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
               >
-                <div className="font-semibold text-rose-400 text-sm mb-1 group-hover:translate-x-0.5 transition-transform">
+                <div className="font-semibold text-sky-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
+                  📄 Document RAG Q&A
+                </div>
+                <div className="text-[11px] text-slate-400">Instant answers with source citations from your uploaded files.</div>
+              </button>
+
+              <button
+                onClick={() => handleExampleClick("Build an interactive financial dashboard using Next.js, Tailwind CSS, and Recharts.")}
+                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+              >
+                <div className="font-semibold text-purple-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
+                  💻 Software Engineering
+                </div>
+                <div className="text-[11px] text-slate-400">Full-stack web applications, Python algorithms, and debugging.</div>
+              </button>
+
+              <button
+                onClick={() => handleExampleClick("Analyze NVDA and MSFT fundamentals, technical indicators (RSI, MACD), and recent earnings sentiment.")}
+                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+              >
+                <div className="font-semibold text-amber-300 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
                   📈 Financial Analysis
                 </div>
-                <div className="text-xs text-slate-400">Stock fundamentals, technicals, and news.</div>
+                <div className="text-[11px] text-slate-400">Live OHLCV market metrics, technical analysis, and reports.</div>
               </button>
-              
+
               <button
-                onClick={() => handleExampleClick("Can you analyze this dataset and plot the correlation matrix?")}
-                className="p-4 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+                onClick={() => handleExampleClick("Perform exploratory data analysis on our customer metrics, calculate correlations, and visualize trends.")}
+                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-cyan-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
               >
-                <div className="font-semibold text-cyan-400 text-sm mb-1 group-hover:translate-x-0.5 transition-transform">
-                  📊 Data Analysis
+                <div className="font-semibold text-cyan-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
+                  📊 Data Analytics
                 </div>
-                <div className="text-xs text-slate-400">Data engineering, EDA, and statistics.</div>
+                <div className="text-[11px] text-slate-400">Statistical data profiling, KPI calculations, and chart generation.</div>
               </button>
             </div>
           </div>
@@ -462,14 +482,34 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                       </button>
 
                       {logsOpen && (
-                        <div className="mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono space-y-1 max-h-48 overflow-y-auto">
-                          {msg.events.map((ev, i) => (
-                            <div key={i} className="flex gap-2 text-slate-300">
-                              <span className="text-amber-400/80">[{ev.department || 'CEO'}]</span>
-                              <span className="text-slate-400">{ev.agent || 'Orchestrator'}:</span>
-                              <span className="text-slate-200">{ev.data}</span>
-                            </div>
-                          ))}
+                        <div className="mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono space-y-1.5 max-h-56 overflow-y-auto">
+                          {msg.events.map((ev, i) => {
+                            const deptName = (ev.department || 'CEO').toLowerCase();
+                            const deptColors: Record<string, string> = {
+                              ceo: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
+                              strategy: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
+                              legal: 'text-violet-400 bg-violet-500/10 border-violet-500/30',
+                              sales: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
+                              design: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/30',
+                              document: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
+                              research: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
+                              content: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
+                              code: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
+                              analytics: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
+                              financial: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
+                            };
+                            const badgeStyle = deptColors[deptName] || 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+
+                            return (
+                              <div key={i} className="flex items-start gap-2 text-slate-300">
+                                <span className={`px-1.5 py-0.5 rounded border text-[10px] uppercase font-semibold flex-shrink-0 ${badgeStyle}`}>
+                                  {ev.department || 'CEO'}
+                                </span>
+                                <span className="text-slate-400 flex-shrink-0">{ev.agent || 'Orchestrator'}:</span>
+                                <span className="text-slate-200 break-words">{ev.data}</span>
+                              </div>
+                            );
+                          })}
                         </div>
                       )}
                     </div>

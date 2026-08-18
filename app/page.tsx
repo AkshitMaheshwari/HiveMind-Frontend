@@ -92,14 +92,14 @@ export default function Dashboard() {
                 <Sparkles className="w-3.5 h-3.5" /> Autonomous Multi-Agent Swarm
               </div>
               <h1 className="text-3xl font-extrabold text-slate-100 tracking-tight mb-3">
-                HiveMind AI Orchestrator
+                HiveMind Enterprise Orchestrator
               </h1>
               <p className="text-sm text-slate-300 leading-relaxed mb-8 max-w-xl">
-                Experience next-generation multi-agent execution. Delegate complex web generation, data engineering, SEO copywriting, and deep research to specialized autonomous AI departments working in parallel.
+                Experience next-generation multi-agent execution with 40+ autonomous agents across 10 specialized departments — Strategy, Legal, Sales, Design, Document RAG, Full-Stack Engineering, and Financial Analytics — collaborating in real-time.
               </p>
 
               <Link href="/chat" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-md transition-all shadow-amber-500/20 hover:shadow-amber-500/40">
-                Go to Tasks & Chat
+                Launch Workspace & Chat
                 <ArrowRight className="w-4 h-4" />
               </Link>
             </div>

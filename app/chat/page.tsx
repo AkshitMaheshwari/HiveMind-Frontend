@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, Suspense } from 'react';
 import { Navbar } from '@/components/Navbar';
 import { Sidebar } from '@/components/Sidebar';
 import { ChatThread } from '@/components/ChatThread';
@@ -34,7 +34,7 @@ function generateUUID(): string {
   });
 }
 
-export default function ChatPage() {
+function ChatPageContent() {
   const searchParams = useSearchParams();
   const isAdminTab = searchParams.get('tab') === 'admin';
 
@@ -362,5 +362,13 @@ export default function ChatPage() {
         currentConfig={modelConfig}
       />
     </div>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div className="h-screen w-screen bg-[#0a0d14] flex items-center justify-center text-amber-400 font-mono text-xs">Loading HiveMind...</div>}>
+      <ChatPageContent />
+    </Suspense>
   );
 }
