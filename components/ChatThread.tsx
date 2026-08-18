@@ -59,6 +59,29 @@ const CodeBlock: React.FC<{ children: string; language?: string }> = ({ children
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
 
+function cleanMarkdownText(content: string): string {
+  if (!content) return '';
+  const str = content.trim();
+  
+  if (
+    (str.startsWith("[{'type': 'text'") || str.startsWith('[{"type": "text"') ||
+     str.startsWith("{'type': 'text'") || str.startsWith('{"type": "text"')) &&
+    (str.includes("'text':") || str.includes('"text":'))
+  ) {
+    const match = str.match(/['"]text['"]\s*:\s*(['"])([\s\S]*?)\1\s*,\s*['"]extras['"]/);
+    if (match && match[2]) {
+      return match[2].replace(/\\n/g, '\n').replace(/\\"/g, '"').replace(/\\'/g, "'");
+    }
+    try {
+      const fixed = str.replace(/'/g, '"');
+      const parsed = JSON.parse(fixed);
+      if (Array.isArray(parsed) && parsed[0]?.text) return parsed[0].text;
+      if (parsed.text) return parsed.text;
+    } catch {}
+  }
+  return content;
+}
+
 const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
   <ReactMarkdown
     remarkPlugins={[remarkGfm]}
@@ -144,7 +167,7 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
       ),
     }}
   >
-    {content}
+    {cleanMarkdownText(content)}
   </ReactMarkdown>
 );
 
