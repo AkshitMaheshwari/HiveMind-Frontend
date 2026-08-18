@@ -107,9 +107,13 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         // Fallback registry if backend not reachable
         setModelRegistry({
           gemini: [
-            { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash', description: 'Fast multimodal model, best for most tasks' },
-            { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro', description: 'High capability, long context (1M tokens)' },
-            { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash', description: 'Fast and versatile performance' },
+            { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', description: 'Next-gen flagship multimodal model, high speed & intelligence' },
+            { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', description: 'Ultra-lightweight & lightning fast for high-throughput tasks' },
+            { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', description: 'Next-gen preview model with enhanced reasoning' },
+            { id: 'gemini-3.1-flash-live-preview', name: 'Gemini 3.1 Flash Live Preview', description: 'Real-time low latency multimodal streaming preview' },
+            { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', description: 'Deep reasoning & complex multi-step analysis' },
+            { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', description: 'Fast and versatile general-purpose performance' },
+            { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite', description: 'Cost-effective, low latency execution' },
           ],
           groq: [
             { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', description: 'Flagship open-weights on Groq, 500 T/s, 131k context' },
