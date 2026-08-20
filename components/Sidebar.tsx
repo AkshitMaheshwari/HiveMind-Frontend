@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { DocumentUpload } from '@/components/DocumentUpload';
+import { soundFx } from '@/lib/soundFx';
 
 interface Conversation {
   conversation_id: string;
@@ -152,10 +153,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <>
       <aside className="w-64 h-[calc(100vh-4rem)] bg-[var(--bg-surface)] border-r border-slate-800 flex flex-col flex-shrink-0">
         {/* New Chat Button */}
-        <div className="p-4 border-b border-slate-800/80">
+        <div className="p-4 border-b border-[var(--border-subtle)]">
           <button
-            onClick={onNewChat}
-            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-medium text-xs rounded-xl transition-all shadow-sm group"
+            onClick={() => {
+              soundFx.playClick();
+              onNewChat();
+            }}
+            onMouseEnter={() => soundFx.playHover()}
+            className="w-full flex items-center justify-center gap-2 py-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 font-bold text-xs rounded-xl transition-all shadow-sm group hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform" />
             New Agent Orchestration

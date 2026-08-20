@@ -127,6 +127,17 @@ function ChatPageContent() {
     else setConversations([]);
   }, [user, fetchConversations]);
 
+  // Check for prefilled prompt launched from dashboard
+  useEffect(() => {
+    if (typeof window !== 'undefined' && user && modelConfig && !loading && messages.length === 0) {
+      const prefilled = sessionStorage.getItem('hivemind_prefilled_prompt');
+      if (prefilled) {
+        sessionStorage.removeItem('hivemind_prefilled_prompt');
+        handleSubmitPrompt(prefilled);
+      }
+    }
+  }, [user, modelConfig, loading, messages.length]);
+
   // ── Load a full conversation thread when clicking sidebar ─────────────────────
   const handleSelectConversation = async (conversationId: string) => {
     if (!user) { setAuthModalOpen(true); return; }

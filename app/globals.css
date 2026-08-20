@@ -2,31 +2,51 @@
 
 @layer base {
   :root {
-    --bg-main: #07090e;
-    --bg-surface: #0e131f;
-    --bg-card: #131a2a;
-    --bg-card-hover: #192236;
+    /* Sleek Obsidian & Carbon Theme (Easy on eyes, enterprise grade) */
+    --bg-main: #08090d;
+    --bg-surface: #0e111a;
+    --bg-surface-elevated: #131722;
+    --bg-card: #111520;
+    --bg-card-hover: #171c2b;
+    --bg-input: #0a0d14;
     
-    --border-subtle: rgba(255, 255, 255, 0.08);
-    --border-amber: rgba(245, 158, 11, 0.25);
+    --border-subtle: rgba(255, 255, 255, 0.07);
+    --border-medium: rgba(255, 255, 255, 0.12);
+    --border-strong: rgba(255, 255, 255, 0.20);
     
-    --text-primary: #f1f5f9;
+    --border-amber: rgba(245, 158, 11, 0.35);
+    --border-emerald: rgba(16, 185, 129, 0.35);
+    --border-cyan: rgba(6, 182, 212, 0.35);
+    
+    --text-primary: #f8fafc;
     --text-secondary: #94a3b8;
     --text-muted: #64748b;
+    --text-faint: #475569;
     
     --accent-amber: #f59e0b;
     --accent-amber-hover: #d97706;
+    --accent-amber-glow: rgba(245, 158, 11, 0.22);
+    
     --accent-emerald: #10b981;
+    --accent-emerald-glow: rgba(16, 185, 129, 0.22);
+    
+    --accent-cyan: #06b6d4;
+    --accent-cyan-glow: rgba(6, 182, 212, 0.22);
+    
     --accent-rose: #f43f5e;
   }
 
   body {
     background-color: var(--bg-main);
     color: var(--text-primary);
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
     padding: 0;
-    overflow: hidden;
+    overflow-x: hidden;
+    background-image: 
+      radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 85% 30%, rgba(6, 182, 212, 0.03) 0%, transparent 40%),
+      radial-gradient(circle at 15% 70%, rgba(16, 185, 129, 0.03) 0%, transparent 40%);
   }
 }
 
@@ -40,21 +60,91 @@
 }
 ::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
-  border-radius: 4px;
+  border-radius: 9999px;
+  transition: background 0.2s ease;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(245, 158, 11, 0.35);
+  background: rgba(245, 158, 11, 0.4);
 }
 
-/* Glassmorphism panel */
+/* Glassmorphism & Surface utilities */
 .glass-panel {
-  background: rgba(14, 19, 31, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(14, 17, 26, 0.72);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border-subtle);
 }
 
-/* Subtle amber glow */
+.glass-panel-elevated {
+  background: rgba(19, 23, 34, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--border-medium);
+}
+
+.glass-input {
+  background: rgba(10, 13, 20, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-subtle);
+}
+
+/* Subtle futuristic glows */
 .amber-glow {
-  box-shadow: 0 0 20px -5px rgba(245, 158, 11, 0.18);
+  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.2);
+}
+
+.emerald-glow {
+  box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.2);
+}
+
+.cyan-glow {
+  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.2);
+}
+
+.inner-glow-amber {
+  box-shadow: inset 0 0 20px rgba(245, 158, 11, 0.08);
+}
+
+/* Futuristic background grid */
+.bg-grid-pattern {
+  background-size: 32px 32px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+}
+
+.bg-dot-pattern {
+  background-size: 24px 24px;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+}
+
+/* Shimmer slide animation */
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.animate-shimmer {
+  animation: shimmer 2.5s infinite linear;
+}
+
+/* Pulse glow animation */
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.02); }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 4s ease-in-out infinite;
+}
+
+/* Synapse line flow */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -40;
+  }
+}
+
+.animate-dash-flow {
+  animation: dash-flow 1.5s linear infinite;
 }
