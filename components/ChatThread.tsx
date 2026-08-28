@@ -422,7 +422,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                     {msg.role === 'thinking' ? (
                       <div className="flex items-center gap-2 text-amber-400/90 text-xs">
                         <Sparkles className="w-4 h-4 animate-spin" />
-                        <span>CEO Agent is analyzing prompt and assigning department teams...</span>
+                        <span>{msg.content || 'CEO Agent is analyzing prompt and assigning department teams...'}</span>
                       </div>
                     ) : msg.role === 'user' ? (
                       <p className="text-sm leading-relaxed">{msg.content}</p>

@@ -84,11 +84,17 @@ function ChatPageContent() {
   };
 
   const getApiKeysForRequest = () => {
-    if (!modelConfig) return undefined;
-    const keyMap: Record<string, string> = {
-      gemini: 'google_api_key',
-      groq: 'groq_api_key',
-      openai: 'openai_api_key',
+    let saved: Record<string, string> = {};
+    try {
+      const raw = localStorage.getItem('hivemind_api_keys');
+      if (raw) saved = JSON.parse(raw);
+    } catch {}
+
+    return {
+      google_api_key: saved.gemini || (modelConfig?.provider === 'gemini' ? modelConfig.apiKey : undefined),
+      groq_api_key: saved.groq || (modelConfig?.provider === 'groq' ? modelConfig.apiKey : undefined),
+      openai_api_key: saved.openai || (modelConfig?.provider === 'openai' ? modelConfig.apiKey : undefined),
+      github_token: saved.github_token || saved.github || undefined,
     };
   };
 
@@ -244,9 +250,48 @@ function ChatPageContent() {
       const streamMsgId = `stream-${taskId}`;
       let eventsList: any[] = [];
 
+      // Fallback polling helper if WS closes or drops
+      const pollTaskCompletion = async () => {
+        try {
+          const pollRes = await fetch(`http://localhost:8000/api/task/${taskId}`, { headers });
+          if (pollRes.ok) {
+            const taskData = await pollRes.json();
+            if (taskData.status === 'done' || taskData.status === 'error') {
+              const content = taskData.final_output || taskData.error || 'Task completed.';
+              setMessages((prev) =>
+                prev
+                  .filter((m) => m.id !== 'thinking')
+                  .concat([{ id: streamMsgId, role: 'assistant', content, streaming: false, events: taskData.events || eventsList }])
+              );
+              setLoading(false);
+              fetchConversations();
+              return true;
+            }
+          }
+        } catch {}
+        return false;
+      };
+
+      const pollInterval = setInterval(async () => {
+        const done = await pollTaskCompletion();
+        if (done) clearInterval(pollInterval);
+      }, 3000);
+
       socket.onmessage = (event) => {
         try {
           const parsed = JSON.parse(event.data);
+
+          // Update live thinking bubble with agent activity
+          if (parsed.data && typeof parsed.data === 'string' && parsed.event !== 'partial_output' && parsed.event !== 'task_done') {
+            const agentLabel = parsed.agent ? `${parsed.agent}: ` : '';
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === 'thinking'
+                  ? { ...m, content: `${agentLabel}${parsed.data}` }
+                  : m
+              )
+            );
+          }
 
           if (parsed.event === 'partial_output') {
             setMessages((prev) => {
@@ -267,19 +312,25 @@ function ChatPageContent() {
           eventsList.push(parsed);
 
           if (parsed.event === 'task_done') {
-            setMessages((prev) =>
-              prev
-                .map((m) =>
-                  m.id === streamMsgId ? { ...m, streaming: false, events: eventsList } : m
-                )
-                .filter((m) => m.id !== 'thinking')
-            );
+            clearInterval(pollInterval);
+            setMessages((prev) => {
+              const existing = prev.find((m) => m.id === streamMsgId);
+              if (existing) {
+                return prev
+                  .map((m) => (m.id === streamMsgId ? { ...m, streaming: false, events: eventsList } : m))
+                  .filter((m) => m.id !== 'thinking');
+              } else {
+                // If stream message didn't exist yet, trigger poll
+                pollTaskCompletion();
+                return prev.filter((m) => m.id !== 'thinking');
+              }
+            });
             setLoading(false);
-            // Refresh sidebar to show/update conversation entry
             fetchConversations();
           }
 
           if (parsed.event === 'error') {
+            clearInterval(pollInterval);
             setMessages((prev) =>
               prev
                 .filter((m) => m.id !== 'thinking' && m.id !== streamMsgId)
@@ -293,8 +344,12 @@ function ChatPageContent() {
       };
 
       socket.onerror = () => {
-        setLoading(false);
-        setMessages((prev) => prev.filter((m) => m.id !== 'thinking'));
+        // Do not immediately drop; let polling handle completion
+      };
+
+      socket.onclose = () => {
+        // Check if finished via polling
+        setTimeout(pollTaskCompletion, 1000);
       };
 
     } catch (e: any) {
