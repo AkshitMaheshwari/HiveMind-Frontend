@@ -129,18 +129,33 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
           {children}
         </a>
       ),
-      code: ({ inline, className, children }: any) => {
-        const lang = className?.replace('language-', '');
-        if (inline) {
-          return (
-            <code className="px-1.5 py-0.5 rounded-md bg-slate-800 text-amber-300 text-[12px] font-mono border border-slate-700">
-              {children}
-            </code>
-          );
-        }
-        return <CodeBlock language={lang}>{String(children).replace(/\n$/, '')}</CodeBlock>;
+      code: ({ className, children, ...props }: any) => {
+        return (
+          <code className="px-1.5 py-0.5 rounded-md bg-slate-800 text-amber-300 text-[12px] font-mono border border-slate-700" {...props}>
+            {children}
+          </code>
+        );
       },
-      pre: ({ children }) => <>{children}</>,
+      pre: (preProps: any) => {
+        const codeElement = preProps.children;
+        if (React.isValidElement(codeElement)) {
+          const { className, children } = codeElement.props as any;
+          const match = /language-(\w+)/.exec(className || '');
+          const language = match ? match[1] : '';
+          const extractText = (node: any): string => {
+            if (typeof node === 'string') return node;
+            if (typeof node === 'number') return String(node);
+            if (Array.isArray(node)) return node.map(extractText).join('');
+            if (React.isValidElement(node) && (node.props as any)?.children) {
+              return extractText((node.props as any).children);
+            }
+            return '';
+          };
+          const codeString = extractText(children).replace(/\n$/, '');
+          return <CodeBlock language={language}>{codeString}</CodeBlock>;
+        }
+        return <pre className="overflow-x-auto my-3 p-4 rounded-xl border border-slate-800 bg-slate-950 text-xs font-mono text-slate-300">{preProps.children}</pre>;
+      },
       blockquote: ({ children }) => (
         <blockquote className="border-l-2 border-amber-500/50 pl-4 my-3 text-slate-400 italic">
           {children}
