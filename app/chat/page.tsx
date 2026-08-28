@@ -90,7 +90,6 @@ function ChatPageContent() {
       groq: 'groq_api_key',
       openai: 'openai_api_key',
     };
-    return { [keyMap[modelConfig.provider]]: modelConfig.apiKey };
   };
 
   // ── Auth ──────────────────────────────────────────────────────────────────────
