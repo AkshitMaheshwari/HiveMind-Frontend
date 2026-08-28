@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   User, LogIn, LogOut, Shield, Key, Sparkles, Layers, ChevronDown, Library,
-  Volume2, VolumeX, Activity
+  Volume2, VolumeX, Activity, GitPullRequest
 } from 'lucide-react';
 import { soundFx } from '@/lib/soundFx';
 
@@ -11,7 +11,6 @@ interface NavbarProps {
   user: any;
   onOpenAuth: () => void;
   onSignOut: () => void;
-  onOpenSettings: () => void;
   activeTab: 'dashboard' | 'chat' | 'admin' | 'documents';
   setActiveTab: (tab: 'dashboard' | 'chat' | 'admin' | 'documents') => void;
   selectedModelName?: string;

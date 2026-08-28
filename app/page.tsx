@@ -14,11 +14,20 @@ import { SpotlightCard } from '@/components/SpotlightCard';
 import { soundFx } from '@/lib/soundFx';
 import {
   Sparkles, ArrowRight, Compass, Scale, Code2, FileSearch,
-  Zap, Play, ChevronRight, CheckCircle2, Shield
+  Zap, Play, ChevronRight, CheckCircle2, Shield, GitPullRequest
 } from 'lucide-react';
 import Link from 'next/link';
 
 const QUICK_ACTIONS = [
+  {
+    title: '🐙 Live GitHub DevOps & PR Agent',
+    dept: 'DevOps & Code Swarm',
+    icon: GitPullRequest,
+    prompt: 'Inspect repository AkshitMaheshwari/portfolio, display the full project tree, and explain the component architecture.',
+    color: '#a855f7',
+    spotlight: 'rgba(168, 85, 247, 0.12)',
+    border: 'rgba(168, 85, 247, 0.35)',
+  },
   {
     title: 'Investor Pitch & Financial Model',
     dept: 'Strategy Swarm',
@@ -43,7 +52,7 @@ const QUICK_ACTIONS = [
     icon: Code2,
     prompt: 'Create a full-stack Python data pipeline with Monte Carlo simulation, execute it in the sandbox, and generate interactive charts.',
     color: '#10b981',
-    spotlight: 'rgba(16, 185, 129, 0.12)',
+    spotlight: 'rgba(168, 185, 129, 0.12)',
     border: 'rgba(16, 185, 129, 0.35)',
   },
   {
@@ -61,6 +70,8 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+  const [modelSelectorTab, setModelSelectorTab] = useState<'gemini' | 'groq' | 'openai' | 'github'>('gemini');
+  const [hasGitHubToken, setHasGitHubToken] = useState(false);
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
 
   // Load saved model config
@@ -69,6 +80,12 @@ export default function Dashboard() {
     const savedModel = localStorage.getItem('hivemind_selected_model');
     const savedProvider = localStorage.getItem('hivemind_selected_provider');
     const savedModelName = localStorage.getItem('hivemind_selected_model_name');
+    if (savedKeys) {
+      try {
+        const parsed = JSON.parse(savedKeys);
+        setHasGitHubToken(Boolean(parsed.github || parsed.github_token));
+      } catch {}
+    }
     if (savedKeys && savedModel && savedProvider) {
       const keys = JSON.parse(savedKeys);
       setModelConfig({
@@ -78,7 +95,7 @@ export default function Dashboard() {
         apiKey: keys[savedProvider] || '',
       });
     }
-  }, []);
+  }, [modelSelectorOpen]);
 
   // Fetch Supabase Session
   useEffect(() => {
@@ -126,7 +143,15 @@ export default function Dashboard() {
         user={user}
         onOpenAuth={() => setAuthModalOpen(true)}
         onSignOut={handleSignOut}
-        onOpenSettings={() => setModelSelectorOpen(true)}
+        onOpenSettings={(tab) => {
+          if (tab) setModelSelectorTab(tab);
+          setModelSelectorOpen(true);
+        }}
+        onOpenGitHub={() => {
+          setModelSelectorTab('github');
+          setModelSelectorOpen(true);
+        }}
+        hasGitHubToken={hasGitHubToken}
         activeTab="dashboard"
         setActiveTab={(t) => {
           if (t === 'admin') window.location.href = '/chat?tab=admin';
@@ -265,6 +290,7 @@ export default function Dashboard() {
         onClose={() => setModelSelectorOpen(false)}
         onSave={handleSaveModel}
         currentConfig={modelConfig}
+        initialTab={modelSelectorTab}
       />
     </div>
   );

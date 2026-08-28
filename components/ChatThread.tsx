@@ -5,7 +5,6 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   Bot, User, Code, Eye, ExternalLink, ChevronDown, ChevronRight,
-  Sparkles, Terminal, Copy, Check as CheckIcon
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -300,7 +299,6 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-4xl mt-4">
               <button
                 onClick={() => handleExampleClick("Create a 3-year go-to-market strategy, competitive analysis, and pitch deck for an AI analytics startup.")}
                 className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
@@ -579,27 +577,44 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="max-w-4xl mx-auto relative flex items-end gap-3">
-            <div className="flex-1 relative">
-              <textarea
-                ref={textareaRef}
-                value={prompt}
-                onChange={handlePromptChange}
-                onKeyDown={handleKeyDown}
-                disabled={loading}
-                rows={1}
-                placeholder="Ask anything — research, code, content, web generation... (Shift+Enter for newline)"
-                className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-5 pr-5 py-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 transition-all resize-none overflow-hidden leading-relaxed"
-              />
+          <div className="max-w-4xl mx-auto space-y-2">
+            {/* Quick Agent Tool Badges */}
+            <div className="flex items-center justify-between px-1 text-xs">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onOpenGitHub?.()}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+                    hasGitHubToken
+                      ? 'bg-purple-500/10 border-purple-500/30 text-purple-300 hover:bg-purple-500/20'
+                      : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-purple-300 hover:border-purple-500/30'
+                  }`}
+                >
+                  <GitPullRequest className="w-3 h-3 text-purple-400" />
+                  <span>{hasGitHubToken ? 'GitHub Active' : 'Connect GitHub'}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrompt('Show me the project structure of ')}
+                  className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all"
+                >
+                  <span>📁 Repo Tree</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrompt('In repository owner/repo, ')}
+                  className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all"
+                >
+                  <span>🚀 Open PR</span>
+                </button>
+              </div>
+
+              <span className="text-[10px] text-slate-500 font-mono hidden md:inline">
+                Swarm Core · Live DevOps Mode
+              </span>
             </div>
-            <button
-              type="submit"
-              disabled={loading || !prompt.trim()}
-              className="flex-shrink-0 p-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl disabled:opacity-40 transition-all mb-0.5"
-            >
-              <Sparkles className="w-4 h-4" />
-            </button>
-          </form>
         )}
         <p className="text-center text-[10px] text-slate-600 mt-2">
           Press Enter to send · Shift+Enter for newline · HiveMind AI processes your request with multiple specialized agents

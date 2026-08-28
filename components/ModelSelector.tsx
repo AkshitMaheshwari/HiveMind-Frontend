@@ -92,7 +92,6 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   currentConfig,
 }) => {
   const [activeProvider, setActiveProvider] = useState<ProviderType>(
-    currentConfig?.provider || 'gemini'
   );
   const [selectedModelId, setSelectedModelId] = useState<string>(
     currentConfig?.modelId || ''

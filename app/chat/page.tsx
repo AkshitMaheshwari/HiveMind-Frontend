@@ -41,6 +41,8 @@ function ChatPageContent() {
   const [user, setUser] = useState<any>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
+  const [modelSelectorTab, setModelSelectorTab] = useState<'gemini' | 'groq' | 'openai' | 'github'>('gemini');
+  const [hasGitHubToken, setHasGitHubToken] = useState(false);
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
 
   // Conversation-level state
@@ -62,6 +64,12 @@ function ChatPageContent() {
     const savedModel = localStorage.getItem('hivemind_selected_model');
     const savedProvider = localStorage.getItem('hivemind_selected_provider');
     const savedModelName = localStorage.getItem('hivemind_selected_model_name');
+    if (savedKeys) {
+      try {
+        const parsed = JSON.parse(savedKeys);
+        setHasGitHubToken(Boolean(parsed.github || parsed.github_token));
+      } catch {}
+    }
     if (savedKeys && savedModel && savedProvider) {
       const keys = JSON.parse(savedKeys);
       setModelConfig({
@@ -71,7 +79,7 @@ function ChatPageContent() {
         apiKey: keys[savedProvider] || '',
       });
     }
-  }, []);
+  }, [modelSelectorOpen]);
 
   const handleSaveModel = (config: ModelConfig) => {
     setModelConfig(config);
@@ -81,6 +89,7 @@ function ChatPageContent() {
     const existingKeys = JSON.parse(localStorage.getItem('hivemind_api_keys') || '{}');
     existingKeys[config.provider] = config.apiKey;
     localStorage.setItem('hivemind_api_keys', JSON.stringify(existingKeys));
+    setHasGitHubToken(Boolean(existingKeys.github || existingKeys.github_token));
   };
 
   const getApiKeysForRequest = () => {
@@ -376,7 +385,15 @@ function ChatPageContent() {
         user={user}
         onOpenAuth={() => setAuthModalOpen(true)}
         onSignOut={handleSignOut}
-        onOpenSettings={() => setModelSelectorOpen(true)}
+        onOpenSettings={(tab) => {
+          if (tab) setModelSelectorTab(tab);
+          setModelSelectorOpen(true);
+        }}
+        onOpenGitHub={() => {
+          setModelSelectorTab('github');
+          setModelSelectorOpen(true);
+        }}
+        hasGitHubToken={hasGitHubToken}
         activeTab={isAdminTab ? 'admin' : 'chat'}
         setActiveTab={(t) => {
           if (t === 'admin') window.location.href = '/chat?tab=admin';
@@ -406,6 +423,11 @@ function ChatPageContent() {
               loading={loading}
               user={user}
               onOpenAuth={() => setAuthModalOpen(true)}
+              onOpenGitHub={() => {
+                setModelSelectorTab('github');
+                setModelSelectorOpen(true);
+              }}
+              hasGitHubToken={hasGitHubToken}
             />
           </>
         )}
@@ -425,6 +447,7 @@ function ChatPageContent() {
         onClose={() => setModelSelectorOpen(false)}
         onSave={handleSaveModel}
         currentConfig={modelConfig}
+        initialTab={modelSelectorTab}
       />
     </div>
   );
