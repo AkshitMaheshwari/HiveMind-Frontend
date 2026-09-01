@@ -143,7 +143,7 @@ export default function Dashboard() {
         user={user}
         onOpenAuth={() => setAuthModalOpen(true)}
         onSignOut={handleSignOut}
-        onOpenSettings={(tab) => {
+        onOpenSettings={(tab?: 'gemini' | 'groq' | 'openai' | 'github') => {
           if (tab) setModelSelectorTab(tab);
           setModelSelectorOpen(true);
         }}

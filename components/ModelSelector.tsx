@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  X, Key, ChevronRight, Sparkles, Check, Eye, EyeOff, Cpu, Zap, Brain, GitPullRequest
+  Brain, Zap, Cpu, Key, Check, Eye, EyeOff, ExternalLink,
+  ChevronDown, Sparkles, RefreshCw, X, GitPullRequest
 } from 'lucide-react';
 
 export interface ModelConfig {
@@ -12,13 +13,14 @@ export interface ModelConfig {
   apiKey: string;
 }
 
-interface ModelEntry {
+export interface ModelEntry {
   id: string;
   name: string;
-  description: string;
+  context_length?: number;
+  description?: string;
 }
 
-interface ModelRegistry {
+export interface ModelRegistry {
   gemini: ModelEntry[];
   groq: ModelEntry[];
   openai: ModelEntry[];
@@ -29,6 +31,7 @@ interface ModelSelectorProps {
   onClose: () => void;
   onSave: (config: ModelConfig) => void;
   currentConfig: ModelConfig | null;
+  initialTab?: ProviderType;
 }
 
 type ProviderType = 'gemini' | 'groq' | 'openai' | 'github';
@@ -90,8 +93,10 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   onClose,
   onSave,
   currentConfig,
+  initialTab,
 }) => {
   const [activeProvider, setActiveProvider] = useState<ProviderType>(
+    initialTab || currentConfig?.provider || 'gemini'
   );
   const [selectedModelId, setSelectedModelId] = useState<string>(
     currentConfig?.modelId || ''
@@ -107,6 +112,13 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   const [modelRegistry, setModelRegistry] = useState<ModelRegistry | null>(null);
   const [loadingModels, setLoadingModels] = useState(false);
 
+  // Sync initialTab when modal opens
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveProvider(initialTab);
+    }
+  }, [isOpen, initialTab]);
+
   // Persist API keys in localStorage
   useEffect(() => {
     const saved = localStorage.getItem('hivemind_api_keys');
@@ -118,45 +130,58 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     }
   }, []);
 
-  // Fetch model registry from backend
-  useEffect(() => {
-    if (!isOpen) return;
+  // Fetch available models from backend
+  const fetchModels = async () => {
     setLoadingModels(true);
-    fetch('http://localhost:8000/api/models')
-      .then((r) => r.json())
-      .then((data) => setModelRegistry(data))
-      .catch(() => {
-        // Fallback registry if backend not reachable
-        setModelRegistry({
-          gemini: [
-            { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', description: 'Flagship hybrid reasoning & multimodal model, ultra-fast & intelligent' },
-            { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', description: 'High-performance production model for complex workflows' },
-            { id: 'gemini-flash-latest', name: 'Gemini Flash Latest', description: 'Latest versatile general-purpose performance' },
-            { id: 'gemini-flash-lite-latest', name: 'Gemini Flash Lite Latest', description: 'Ultra-low latency execution for high throughput' },
-            { id: 'gemini-3.5-flash', name: 'Gemini 3.5 Flash', description: 'Next-gen flagship multimodal model, high speed' },
-            { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro Preview', description: 'Deep reasoning & complex multi-step analysis' },
-            { id: 'gemini-3.1-flash-lite', name: 'Gemini 3.1 Flash Lite', description: 'Ultra-lightweight preview for fast tasks' },
-            { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash Preview', description: 'Next-gen preview model with enhanced reasoning' },
-            { id: 'gemini-3.1-flash-live-preview', name: 'Gemini 3.1 Flash Live Preview', description: 'Real-time low latency multimodal streaming preview' },
-          ],
-          groq: [
-            { id: 'openai/gpt-oss-120b', name: 'GPT OSS 120B', description: 'Flagship open-weights on Groq, 500 T/s, 131k context' },
-            { id: 'openai/gpt-oss-20b', name: 'GPT OSS 20B', description: 'Ultra-fast open weights on Groq, 1000 T/s, 131k context' },
-            { id: 'qwen/qwen3.6-27b', name: 'Qwen 3.6 27B', description: 'Alibaba reasoning model, 131k context, tools support' },
-            { id: 'groq/compound', name: 'Groq Compound', description: 'Groq engineered multi-agent system, 131k context' },
-            { id: 'groq/compound-mini', name: 'Compound Mini', description: 'Fast lightweight compound model, 131k context' },
-            { id: 'allam-2-7b', name: 'ALLaM 2 7B', description: 'SDAIA bilingual Arabic/English model, 4k context' },
-          ],
-          openai: [
-            { id: 'gpt-4o', name: 'GPT-4o', description: 'Best OpenAI model, multimodal' },
-            { id: 'gpt-4o-mini', name: 'GPT-4o Mini', description: 'Affordable, fast, intelligent' },
-          ],
-        });
-      })
-      .finally(() => setLoadingModels(false));
+    try {
+      const res = await fetch('http://localhost:8000/api/models');
+      if (res.ok) {
+        const data: ModelRegistry = await res.json();
+        setModelRegistry(data);
+        // Default model for current provider if none selected
+        if (!selectedModelId && activeProvider !== 'github') {
+          const providerModels = data[activeProvider as 'gemini' | 'groq' | 'openai'] || [];
+          if (providerModels.length > 0) {
+            setSelectedModelId(providerModels[0].id);
+          }
+        }
+      }
+    } catch {
+      // Fallback static list if backend unreachable
+      setModelRegistry({
+        gemini: [
+          { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Recommended)' },
+          { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
+          { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
+        ],
+        groq: [
+          { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Versatile)' },
+          { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B (Instant)' },
+          { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B' },
+        ],
+        openai: [
+          { id: 'gpt-4o', name: 'GPT-4o (Omni)' },
+          { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
+          { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
+        ],
+      });
+      if (!selectedModelId && activeProvider !== 'github') {
+        setSelectedModelId(
+          activeProvider === 'gemini' ? 'gemini-2.0-flash'
+          : activeProvider === 'groq'   ? 'llama-3.3-70b-versatile'
+          : 'gpt-4o'
+        );
+      }
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) fetchModels();
   }, [isOpen]);
 
-  // Auto-select first model when switching provider
+  // When switching provider, set default model if current selection isn't in that provider
   useEffect(() => {
     if (!modelRegistry || activeProvider === 'github') return;
     const models = modelRegistry[activeProvider as 'gemini' | 'groq' | 'openai'] || [];
@@ -203,226 +228,179 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
       <div className="w-full max-w-2xl bg-[#0f1117] border border-slate-800 rounded-2xl shadow-2xl relative overflow-hidden">
-        {/* Gradient accent top bar */}
-        <div className={`h-0.5 w-full bg-gradient-to-r ${meta.color.replace('/20', '')}`} />
-
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-slate-800">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
-              <Key className="w-4 h-4" />
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
+              <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-slate-100">Model & Integrations</h2>
-              <p className="text-xs text-slate-400">Configure AI models, API keys, and GitHub access</p>
+              <h2 className="text-sm font-bold text-slate-100">LLM Provider & Model Configuration</h2>
+              <p className="text-xs text-slate-400">Bring Your Own Key (BYOK) — Keys stored securely in browser</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-all"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="flex h-[440px]">
-          {/* Left: Provider tabs */}
-          <div className="w-44 border-r border-slate-800 p-3 flex flex-col gap-1 flex-shrink-0">
-            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-2 px-2">Provider & Tools</p>
-            {(Object.keys(PROVIDER_META) as ProviderType[]).map((provider) => {
-              const pm = PROVIDER_META[provider];
-              const isActive = provider === activeProvider;
-              return (
-                <button
-                  key={provider}
-                  onClick={() => setActiveProvider(provider)}
-                  className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left text-xs font-medium transition-all border ${
-                    isActive
-                      ? `${pm.activeBg}`
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 border-transparent'
-                  }`}
-                >
-                  <span className={isActive ? pm.accent : 'text-slate-500'}>{pm.icon}</span>
-                  {pm.label}
-                  {isActive && <ChevronRight className="w-3 h-3 ml-auto" />}
-                </button>
-              );
-            })}
-
-            {currentConfig && (
-              <div className="mt-auto p-2.5 rounded-xl bg-slate-900/60 border border-slate-800">
-                <p className="text-[10px] text-slate-500 mb-1">Active Model</p>
-                <p className="text-[11px] font-medium text-amber-400 truncate">{currentConfig.modelName}</p>
-                <p className="text-[10px] text-slate-500 capitalize">{currentConfig.provider}</p>
-              </div>
-            )}
+        {/* Content */}
+        <div className="p-6 space-y-5">
+          {/* Provider Tabs */}
+          <div>
+            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
+              Select Provider / Integration
+            </label>
+            <div className="grid grid-cols-4 gap-2">
+              {(Object.keys(PROVIDER_META) as ProviderType[]).map((prov) => {
+                const p = PROVIDER_META[prov];
+                const isActive = activeProvider === prov;
+                const hasKey = Boolean(apiKeys[prov]?.trim());
+                return (
+                  <button
+                    key={prov}
+                    onClick={() => setActiveProvider(prov)}
+                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-xs font-semibold transition-all ${
+                      isActive
+                        ? p.activeBg + ' shadow-md'
+                        : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1">
+                      {p.icon}
+                      <span>{p.label}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {hasKey ? (
+                        <span className="text-[10px] text-emerald-400 flex items-center gap-0.5">
+                          <Check className="w-2.5 h-2.5" /> Ready
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-slate-500">No Key</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Right: Model list + API key OR GitHub Integration Panel */}
-          {activeProvider === 'github' ? (
-            <div className="flex-1 flex flex-col justify-between p-6 overflow-y-auto">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 text-purple-400">
-                  <GitPullRequest className="w-5 h-5" />
-                  <h3 className="text-sm font-semibold text-slate-100">GitHub Agent Integration</h3>
-                </div>
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Connect your GitHub Personal Access Token (PAT) to empower the Multi-Agent System with end-to-end repository capabilities.
-                </p>
+          {/* API Key Input */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-amber-400" />
+                {meta.label} API Key / Token
+              </label>
+              <span className="text-[11px] text-slate-500">{meta.keyHint}</span>
+            </div>
+            <div className="relative">
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={currentApiKey}
+                onChange={(e) => updateKey(e.target.value)}
+                placeholder={meta.placeholder}
+                className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/60 font-mono pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+              >
+                {showKey ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+          </div>
 
-                <div className="grid grid-cols-1 gap-2.5 my-3">
-                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
-                    <p className="font-semibold text-slate-200 flex items-center gap-1.5 mb-1">
-                      <span>📁</span> Codebase RAG & Ingestion
-                    </p>
-                    <p className="text-slate-400 text-[11px]">
-                      Index full repositories to ask questions about your codebase, search functions, and analyze architecture.
-                    </p>
-                  </div>
-                  <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 text-xs">
-                    <p className="font-semibold text-slate-200 flex items-center gap-1.5 mb-1">
-                      <span>🚀</span> Automated PRs & Code Edits
-                    </p>
-                    <p className="text-slate-400 text-[11px]">
-                      Ask the Code Agent to fix bugs or build features, and it will branch, commit, and open a Pull Request directly on GitHub.
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                    GitHub Personal Access Token (PAT)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showKey ? 'text' : 'password'}
-                      value={apiKeys.github || ''}
-                      onChange={(e) => {
-                        setGithubSaved(false);
-                        updateKey(e.target.value);
-                      }}
-                      placeholder="ghp_... or github_pat_..."
-                      className="w-full bg-slate-900 border border-slate-700 focus:border-purple-500/50 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none font-mono pr-10 transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowKey(!showKey)}
-                      className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition-colors"
-                    >
-                      {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-slate-500 mt-1.5">
-                    🔗 Create a token at{' '}
-                    <a
-                      href="https://github.com/settings/tokens"
-                      target="_blank"
-                      rel="noreferrer"
-                      className="text-purple-400 underline hover:text-purple-300"
-                    >
-                      github.com/settings/tokens
-                    </a>{' '}
-                    with <code className="text-amber-400">repo</code> scope.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t border-slate-800">
+          {/* Model Selector (Only for LLM providers, not github token) */}
+          {activeProvider !== 'github' && (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-slate-300">
+                  Select {meta.label} Model
+                </label>
                 <button
-                  onClick={handleSave}
-                  className="w-full py-2.5 bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-semibold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2"
+                  onClick={fetchModels}
+                  disabled={loadingModels}
+                  className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1"
                 >
-                  {githubSaved ? (
-                    <>
-                      <Check className="w-4 h-4 text-emerald-300" />
-                      GitHub Token Saved!
-                    </>
-                  ) : (
-                    'Save GitHub Token'
-                  )}
+                  <RefreshCw className={`w-3 h-3 ${loadingModels ? 'animate-spin' : ''}`} />
+                  Refresh
                 </button>
               </div>
-            </div>
-          ) : (
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Model list */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-2">
-                <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-3">
-                  {meta.label} Models
-                </p>
 
-                {loadingModels ? (
-                  <div className="flex items-center justify-center h-32 text-slate-500 text-xs">
-                    <Sparkles className="w-4 h-4 mr-2 animate-spin" />
-                    Loading models...
-                  </div>
-                ) : (
-                  models.map((model: ModelEntry) => {
-                    const isSelected = model.id === selectedModelId;
+              {loadingModels ? (
+                <div className="p-4 text-center text-xs text-slate-500 bg-slate-900/40 rounded-xl border border-slate-800 animate-pulse">
+                  Fetching live models from backend...
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {models.map((model) => {
+                    const isSelected = selectedModelId === model.id;
                     return (
                       <button
                         key={model.id}
                         onClick={() => setSelectedModelId(model.id)}
-                        className={`w-full flex items-start gap-3 p-3 rounded-xl border text-left transition-all group ${
+                        className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border text-left text-xs transition-all ${
                           isSelected
-                            ? `bg-gradient-to-r ${meta.color} ${meta.border}`
-                            : 'bg-slate-900/40 border-slate-800 hover:border-slate-700 hover:bg-slate-900/60'
+                            ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
+                            : 'bg-slate-900/60 border-slate-800 text-slate-300 hover:bg-slate-800/60 hover:border-slate-700'
                         }`}
                       >
-                        <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-all ${
-                          isSelected ? `${meta.border} ${meta.accent}` : 'border-slate-600'
-                        }`}>
-                          {isSelected && <Check className="w-2.5 h-2.5" />}
-                        </div>
                         <div>
-                          <p className={`text-xs font-semibold transition-colors ${isSelected ? meta.accent : 'text-slate-200'}`}>
-                            {model.name}
-                          </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">{model.description}</p>
+                          <div className="font-semibold text-slate-100">{model.name}</div>
+                          <div className="text-[10px] text-slate-500 font-mono">{model.id}</div>
                         </div>
+                        {isSelected && <Check className="w-4 h-4 text-amber-400 flex-shrink-0" />}
                       </button>
                     );
-                  })
-                )}
-              </div>
-
-              {/* API Key input */}
-              <div className="border-t border-slate-800 p-4 space-y-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                    {meta.label} API Key
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showKey ? 'text' : 'password'}
-                      value={currentApiKey}
-                      onChange={(e) => updateKey(e.target.value)}
-                      placeholder={meta.placeholder}
-                      className="w-full bg-slate-900 border border-slate-700 focus:border-amber-500/50 rounded-xl px-4 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none font-mono pr-10 transition-all"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowKey(!showKey)}
-                      className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-300 transition-colors"
-                    >
-                      {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1">
-                    🔗 {meta.keyHint} — stored in browser only, never sent to our servers.
-                  </p>
+                  })}
                 </div>
+              )}
+            </div>
+          )}
 
-                <button
-                  onClick={handleSave}
-                  disabled={!selectedModelId || !currentApiKey.trim()}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 font-semibold text-sm rounded-xl transition-all shadow-md"
-                >
-                  {selectedModel ? `Use ${selectedModel.name}` : 'Select a Model'}
-                </button>
+          {/* GitHub Explanation Note */}
+          {activeProvider === 'github' && (
+            <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs space-y-2 text-slate-300">
+              <div className="font-semibold text-purple-300 flex items-center gap-1.5">
+                <GitPullRequest className="w-4 h-4" /> Live GitHub Repository Operations
+              </div>
+              <p className="text-[11px] leading-relaxed text-slate-400">
+                Your Personal Access Token (PAT) enables the HiveMind AI Swarm to inspect live repositories, analyze code trees, create branches, commit code, and open Pull Requests directly from chat.
+              </p>
+              <div className="text-[10px] text-purple-400/90 font-mono">
+                Required Scopes: <code className="bg-purple-950/80 px-1.5 py-0.5 rounded border border-purple-800/60">repo</code> (Full control of private & public repositories)
               </div>
             </div>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/50">
+          <span className="text-[11px] text-slate-500">
+            {activeProvider === 'github'
+              ? (githubSaved ? '✅ GitHub Token Saved!' : 'Token saved locally in browser')
+              : (currentApiKey ? '✅ Key loaded' : '⚠️ Key required to run')}
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+            >
+              Close
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={activeProvider !== 'github' && (!currentApiKey.trim() || !selectedModelId)}
+              className="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 disabled:opacity-40 transition-all shadow-md"
+            >
+              {activeProvider === 'github' ? 'Save GitHub Token' : 'Apply & Save'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

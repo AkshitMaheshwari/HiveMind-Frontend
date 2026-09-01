@@ -5,6 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   Bot, User, Code, Eye, ExternalLink, ChevronDown, ChevronRight,
+  Sparkles, Terminal, Copy, Check as CheckIcon, GitPullRequest
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -24,6 +25,8 @@ interface ChatThreadProps {
   loading: boolean;
   user: any;
   onOpenAuth: () => void;
+  onOpenGitHub?: () => void;
+  hasGitHubToken?: boolean;
 }
 
 // ─── Code block with copy button ─────────────────────────────────────────────
@@ -198,6 +201,8 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   loading,
   user,
   onOpenAuth,
+  onOpenGitHub,
+  hasGitHubToken,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [activeTabs, setActiveTabs] = useState<Record<string, 'report' | 'preview'>>({});
@@ -213,55 +218,53 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   // Auto-resize textarea
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(e.target.value);
-    const ta = textareaRef.current;
-    if (ta) {
-      ta.style.height = 'auto';
-      ta.style.height = Math.min(ta.scrollHeight, 160) + 'px';
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
     }
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!user) { onOpenAuth(); return; }
-    if (!prompt.trim() || loading) return;
-    onSubmitPrompt(prompt);
-    setPrompt('');
-    if (textareaRef.current) textareaRef.current.style.height = 'auto';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      handleSubmit();
+      handleSubmit(e as any);
     }
   };
 
-  const extractHtml = (content: string) => {
-    if (!content) return null;
-    const regex = /```(?:html|xml)?\s*\n([\s\S]*?)```/gi;
-    const match = regex.exec(content);
-    if (match) return match[1].trim();
-    if (content.includes('<!DOCTYPE html>') || content.includes('<html')) {
-      const start = content.indexOf('<!DOCTYPE') !== -1 ? content.indexOf('<!DOCTYPE') : content.indexOf('<html');
-      const end = content.indexOf('</html>');
-      if (start !== -1 && end !== -1) return content.substring(start, end + 7);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!prompt.trim() || loading) return;
+    onSubmitPrompt(prompt.trim());
+    setPrompt('');
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  };
+
+  // Helper to extract HTML code block
+  const extractHtml = (content: string): string | null => {
+    const htmlRegex = /```html\n([\s\S]*?)```/i;
+    const match = content.match(htmlRegex);
+    if (match && match[1]) return match[1];
+
+    if (content.includes('<!DOCTYPE html>') || (content.includes('<html') && content.includes('</html>'))) {
+      return content;
     }
     return null;
   };
 
-  const openFullscreen = (htmlCode: string) => {
+  const openFullscreen = (html: string) => {
     const win = window.open('', '_blank');
     if (win) {
-      win.document.open();
       win.document.write(`<!DOCTYPE html>
 <html>
 <head>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Preview</title>
 </head>
-<body>
-  ${htmlCode}
+<body style="margin:0;padding:0;">
+  ${html}
 </body>
 </html>`);
       win.document.close();
@@ -299,6 +302,67 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
               </div>
             )}
 
+            {/* GitHub & DevOps Featured Integration Banner */}
+            <div className="w-full max-w-4xl p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-slate-900/80 border border-purple-500/30 shadow-xl text-left relative overflow-hidden backdrop-blur-sm">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-purple-500/15 border border-purple-500/40 flex items-center justify-center text-purple-400 flex-shrink-0 shadow-inner">
+                    <GitPullRequest className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-100">🐙 GitHub & DevOps Swarm Agent</h3>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        Live Integration
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Inspect live repository trees, read codebase files, commit features, and open Pull Requests directly from chat.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (onOpenGitHub) onOpenGitHub();
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 flex-shrink-0 ${
+                    hasGitHubToken
+                      ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300 hover:bg-purple-500/30'
+                      : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white hover:shadow-purple-500/25'
+                  }`}
+                >
+                  <GitPullRequest className="w-3.5 h-3.5" />
+                  {hasGitHubToken ? 'GitHub Token Active ⚙️' : 'Connect GitHub Token'}
+                </button>
+              </div>
+
+              {/* Quick suggestion pills */}
+              <div className="flex flex-wrap items-center gap-2 mt-3.5 pt-3 border-t border-purple-500/20 text-xs">
+                <span className="text-[11px] text-purple-300/80 font-medium">Try asking:</span>
+                <button
+                  onClick={() => handleExampleClick("Show me the project structure of AkshitMaheshwari/portfolio")}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-purple-500/30 text-purple-200 text-[11px] transition-all hover:border-purple-400 font-mono"
+                >
+                  📁 Show project structure of AkshitMaheshwari/portfolio
+                </button>
+                <button
+                  onClick={() => handleExampleClick("Inspect my portfolio repository and summarize its architecture")}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-purple-500/30 text-purple-200 text-[11px] transition-all hover:border-purple-400"
+                >
+                  🔍 Inspect my portfolio repository
+                </button>
+                <button
+                  onClick={() => handleExampleClick("In my repository owner/repo, fix the typo in README.md and open a PR")}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-purple-500/30 text-purple-200 text-[11px] transition-all hover:border-purple-400"
+                >
+                  🚀 Fix bug & open Pull Request
+                </button>
+              </div>
+            </div>
+
+            {/* Starter Mission Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-4xl mt-3">
               <button
                 onClick={() => handleExampleClick("Create a 3-year go-to-market strategy, competitive analysis, and pitch deck for an AI analytics startup.")}
                 className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
@@ -461,80 +525,83 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                           </button>
                         </div>
 
+                        {/* Content Body */}
                         {currentTab === 'report' ? (
                           <MarkdownContent content={msg.content || ''} />
                         ) : (
-                          <div className="w-full h-[500px] rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                          <div className="rounded-xl overflow-hidden border border-slate-800 bg-white min-h-[400px]">
                             <iframe
-                              className="w-full h-full border-0"
-                              srcDoc={`<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"></head><body>${htmlContent}</body></html>`}
+                              srcDoc={htmlContent}
+                              title="preview"
+                              className="w-full h-[500px] border-0"
+                              sandbox="allow-scripts allow-same-origin"
                             />
                           </div>
                         )}
                       </div>
                     ) : (
-                      <div>
-                        <MarkdownContent content={msg.content || ''} />
-                        {msg.streaming && <TypingCursor />}
+                      <MarkdownContent content={msg.content || ''} />
+                    )}
+
+                    {/* Chart Visualization if chartsData present */}
+                    {chartsData && (
+                      <div className="mt-4 pt-4 border-t border-slate-800">
+                        <h4 className="text-xs font-semibold text-amber-400 mb-3 flex items-center gap-2">
+                          📊 Generated Analytics Chart
+                        </h4>
+                        <div className="h-64 w-full bg-slate-900/50 p-2 rounded-xl border border-slate-800/80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <LineChart data={chartsData}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                              <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
+                              <YAxis stroke="#94a3b8" fontSize={11} />
+                              <Tooltip
+                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
+                              />
+                              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
+                              {Object.keys(chartsData[0] || {})
+                                .filter(key => key !== 'name')
+                                .map((key, index) => {
+                                  const colors = ['#f59e0b', '#06b6d4', '#10b981', '#ec4899', '#8b5cf6'];
+                                  return (
+                                    <Line
+                                      key={key}
+                                      type="monotone"
+                                      dataKey={key}
+                                      stroke={colors[index % colors.length]}
+                                      strokeWidth={2}
+                                      dot={{ fill: colors[index % colors.length], r: 3 }}
+                                      activeDot={{ r: 5 }}
+                                    />
+                                  );
+                                })}
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
                     )}
                   </div>
 
-                  {/* Render Charts if present */}
-                  {chartsData && chartsData.map((chart: any, i: number) => (
-                    <div key={i} className="mt-4 p-4 bg-slate-900 border border-slate-800 rounded-xl">
-                      <h4 className="text-sm font-semibold text-slate-200 mb-4">{chart.title || 'Chart'}</h4>
-                      <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={chart.data}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                            <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} />
-                            <YAxis stroke="#94a3b8" fontSize={11} />
-                            <Tooltip 
-                              contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b' }} 
-                              itemStyle={{ color: '#fbbf24' }}
-                            />
-                            <Legend />
-                            <Line type="monotone" dataKey="value" stroke="#fbbf24" strokeWidth={2} dot={false} />
-                            {chart.lines?.map((lineKey: string, idx: number) => (
-                               <Line key={idx} type="monotone" dataKey={lineKey} stroke={['#38bdf8', '#34d399', '#a78bfa'][idx % 3]} strokeWidth={2} dot={false} />
-                            ))}
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Collapsible Execution Events */}
+                  {/* Agent Execution Logs Collapsible */}
                   {msg.events && msg.events.length > 0 && (
                     <div className="mt-2 text-left">
                       <button
                         onClick={() => setShowLogs({ ...showLogs, [msg.id]: !logsOpen })}
-                        className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-amber-400 font-mono transition-all"
+                        className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-amber-400 transition-colors font-medium"
                       >
-                        {logsOpen ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                        {logsOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                         <Terminal className="w-3 h-3" />
                         <span>Execution Steps ({msg.events.length} agent events)</span>
                       </button>
 
                       {logsOpen && (
-                        <div className="mt-2 p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] font-mono space-y-1.5 max-h-56 overflow-y-auto">
+                        <div className="mt-2 p-3 rounded-xl bg-slate-950/80 border border-slate-800 space-y-1.5 font-mono text-[11px] max-h-56 overflow-y-auto">
                           {msg.events.map((ev, i) => {
-                            const deptName = (ev.department || 'CEO').toLowerCase();
-                            const deptColors: Record<string, string> = {
-                              ceo: 'text-amber-400 bg-amber-500/10 border-amber-500/30',
-                              strategy: 'text-orange-400 bg-orange-500/10 border-orange-500/30',
-                              legal: 'text-violet-400 bg-violet-500/10 border-violet-500/30',
-                              sales: 'text-rose-400 bg-rose-500/10 border-rose-500/30',
-                              design: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/30',
-                              document: 'text-sky-400 bg-sky-500/10 border-sky-500/30',
-                              research: 'text-blue-400 bg-blue-500/10 border-blue-500/30',
-                              content: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/30',
-                              code: 'text-purple-400 bg-purple-500/10 border-purple-500/30',
-                              analytics: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/30',
-                              financial: 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30',
-                            };
-                            const badgeStyle = deptColors[deptName] || 'text-amber-400 bg-amber-500/10 border-amber-500/30';
+                            const badgeStyle =
+                              ev.department === 'code' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
+                              ev.department === 'research' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                              ev.department === 'finance' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                              'bg-slate-800 text-slate-400 border-slate-700';
 
                             return (
                               <div key={i} className="flex items-start gap-2 text-slate-300">
@@ -615,6 +682,29 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                 Swarm Core · Live DevOps Mode
               </span>
             </div>
+
+            <form onSubmit={handleSubmit} className="relative flex items-end gap-3">
+              <div className="flex-1 relative">
+                <textarea
+                  ref={textareaRef}
+                  value={prompt}
+                  onChange={handlePromptChange}
+                  onKeyDown={handleKeyDown}
+                  disabled={loading}
+                  rows={1}
+                  placeholder="Ask anything — 'Show structure of owner/repo', code, research, pitch decks... (Shift+Enter for newline)"
+                  className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-5 pr-5 py-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 transition-all resize-none overflow-hidden leading-relaxed"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading || !prompt.trim()}
+                className="flex-shrink-0 p-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl disabled:opacity-40 transition-all mb-0.5 shadow-md"
+              >
+                <Sparkles className="w-4 h-4" />
+              </button>
+            </form>
+          </div>
         )}
         <p className="text-center text-[10px] text-slate-600 mt-2">
           Press Enter to send · Shift+Enter for newline · HiveMind AI processes your request with multiple specialized agents

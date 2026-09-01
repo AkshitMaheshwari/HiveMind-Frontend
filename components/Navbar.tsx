@@ -11,6 +11,9 @@ interface NavbarProps {
   user: any;
   onOpenAuth: () => void;
   onSignOut: () => void;
+  onOpenSettings: (tab?: 'gemini' | 'groq' | 'openai' | 'github') => void;
+  onOpenGitHub?: () => void;
+  hasGitHubToken?: boolean;
   activeTab: 'dashboard' | 'chat' | 'admin' | 'documents';
   setActiveTab: (tab: 'dashboard' | 'chat' | 'admin' | 'documents') => void;
   selectedModelName?: string;
@@ -21,6 +24,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenAuth,
   onSignOut,
   onOpenSettings,
+  onOpenGitHub,
+  hasGitHubToken,
   activeTab,
   setActiveTab,
   selectedModelName,
@@ -120,7 +125,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </div>
 
-      {/* Right Controls: SFX, Model Selector & Auth */}
+      {/* Right Controls: SFX, GitHub, Model Selector & Auth */}
       <div className="flex items-center gap-2.5">
         {/* Audio SFX Toggle */}
         <button
@@ -133,6 +138,26 @@ export const Navbar: React.FC<NavbarProps> = ({
           }`}
         >
           {sfxEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+        </button>
+
+        {/* GitHub Integration Quick Button */}
+        <button
+          onClick={() => {
+            soundFx.playClick();
+            if (onOpenGitHub) onOpenGitHub();
+            else onOpenSettings('github');
+          }}
+          onMouseEnter={() => soundFx.playHover()}
+          title={hasGitHubToken ? 'GitHub Connected — Click to manage token' : 'Connect GitHub Token (PAT)'}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all shadow-sm ${
+            hasGitHubToken
+              ? 'bg-purple-500/15 border-purple-500/40 text-purple-300 hover:bg-purple-500/25'
+              : 'bg-slate-900/90 border-slate-800 text-slate-300 hover:border-purple-500/40 hover:text-purple-300 hover:bg-slate-850'
+          }`}
+        >
+          <GitPullRequest className={`w-3.5 h-3.5 ${hasGitHubToken ? 'text-purple-400' : 'text-slate-400'}`} />
+          <span className="hidden md:inline">{hasGitHubToken ? 'GitHub Connected' : 'Connect GitHub'}</span>
+          {hasGitHubToken && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />}
         </button>
 
         {/* Model Selector Button */}
