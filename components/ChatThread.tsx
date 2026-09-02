@@ -211,20 +211,59 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   };
 
   const extractHtml = (content: string): string | null => {
-    const htmlRegex = /```html\n([\s\S]*?)```/i;
-    const match = content.match(htmlRegex);
-    if (match && match[1]) return match[1];
+    if (!content) return null;
 
-    if (content.includes('<!DOCTYPE html>') || (content.includes('<html') && content.includes('</html>'))) {
-      return content;
+    // 1. Check for ```html code blocks
+    const htmlFenceRegex = /```html\s*([\s\S]*?)```/i;
+    const fenceMatch = content.match(htmlFenceRegex);
+    if (fenceMatch && fenceMatch[1] && fenceMatch[1].trim()) {
+      let html = fenceMatch[1].trim();
+      const docTypeIdx = html.search(/<!DOCTYPE\s+html/i);
+      const htmlStartIdx = html.search(/<html/i);
+      const htmlEndIdx = html.search(/<\/html>/i);
+      if (docTypeIdx !== -1 && htmlEndIdx !== -1) {
+        return html.substring(docTypeIdx, htmlEndIdx + 7).trim();
+      } else if (htmlStartIdx !== -1 && htmlEndIdx !== -1) {
+        return html.substring(htmlStartIdx, htmlEndIdx + 7).trim();
+      }
+      return html;
     }
+
+    // 2. Extract strictly from <!DOCTYPE html> to </html>
+    const docTypeMatch = content.match(/(<!DOCTYPE\s+html[\s\S]*?<\/html>)/i);
+    if (docTypeMatch && docTypeMatch[1]) {
+      return docTypeMatch[1].trim();
+    }
+
+    // 3. Extract strictly from <html ... </html>
+    const htmlTagMatch = content.match(/(<html[\s\S]*?<\/html>)/i);
+    if (htmlTagMatch && htmlTagMatch[1]) {
+      return htmlTagMatch[1].trim();
+    }
+
+    // 4. Check for generic code blocks containing complete HTML documents
+    const genericFenceMatch = content.match(/```(?:xml|jsx|tsx)?\s*([\s\S]*?)```/i);
+    if (genericFenceMatch && genericFenceMatch[1]) {
+      const code = genericFenceMatch[1].trim();
+      const docMatch = code.match(/(<!DOCTYPE\s+html[\s\S]*?<\/html>)/i);
+      if (docMatch && docMatch[1]) return docMatch[1].trim();
+      const tagMatch = code.match(/(<html[\s\S]*?<\/html>)/i);
+      if (tagMatch && tagMatch[1]) return tagMatch[1].trim();
+    }
+
     return null;
   };
 
   const openFullscreen = (html: string) => {
     const win = window.open('', '_blank');
     if (win) {
-      win.document.write(`<!DOCTYPE html>
+      if (html.toLowerCase().includes('<!doctype html') || html.toLowerCase().includes('<html')) {
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+      } else {
+        win.document.open();
+        win.document.write(`<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -235,7 +274,8 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   ${html}
 </body>
 </html>`);
-      win.document.close();
+        win.document.close();
+      }
     }
   };
 
