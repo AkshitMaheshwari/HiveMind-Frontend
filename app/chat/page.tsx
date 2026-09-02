@@ -41,8 +41,9 @@ function ChatPageContent() {
   const [user, setUser] = useState<any>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
-  const [modelSelectorTab, setModelSelectorTab] = useState<'gemini' | 'groq' | 'openai' | 'github'>('gemini');
+  const [modelSelectorTab, setModelSelectorTab] = useState<'gemini' | 'groq' | 'openai' | 'github' | 'gmail'>('gemini');
   const [hasGitHubToken, setHasGitHubToken] = useState(false);
+  const [hasGmailToken, setHasGmailToken] = useState(false);
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
 
   // Conversation-level state
@@ -68,6 +69,7 @@ function ChatPageContent() {
       try {
         const parsed = JSON.parse(savedKeys);
         setHasGitHubToken(Boolean(parsed.github || parsed.github_token));
+        setHasGmailToken(Boolean(parsed.gmail || parsed.gmail_token));
       } catch {}
     }
     if (savedKeys && savedModel && savedProvider) {
@@ -90,6 +92,7 @@ function ChatPageContent() {
     existingKeys[config.provider] = config.apiKey;
     localStorage.setItem('hivemind_api_keys', JSON.stringify(existingKeys));
     setHasGitHubToken(Boolean(existingKeys.github || existingKeys.github_token));
+    setHasGmailToken(Boolean(existingKeys.gmail || existingKeys.gmail_token));
   };
 
   const getApiKeysForRequest = () => {
@@ -104,6 +107,7 @@ function ChatPageContent() {
       groq_api_key: saved.groq || (modelConfig?.provider === 'groq' ? modelConfig.apiKey : undefined),
       openai_api_key: saved.openai || (modelConfig?.provider === 'openai' ? modelConfig.apiKey : undefined),
       github_token: saved.github_token || saved.github || undefined,
+      gmail_token: saved.gmail_token || saved.gmail || undefined,
     };
   };
 
@@ -385,7 +389,7 @@ function ChatPageContent() {
         user={user}
         onOpenAuth={() => setAuthModalOpen(true)}
         onSignOut={handleSignOut}
-        onOpenSettings={(tab?: 'gemini' | 'groq' | 'openai' | 'github') => {
+        onOpenSettings={(tab) => {
           if (tab) setModelSelectorTab(tab);
           setModelSelectorOpen(true);
         }}
@@ -394,6 +398,11 @@ function ChatPageContent() {
           setModelSelectorOpen(true);
         }}
         hasGitHubToken={hasGitHubToken}
+        onOpenGmail={() => {
+          setModelSelectorTab('gmail');
+          setModelSelectorOpen(true);
+        }}
+        hasGmailToken={hasGmailToken}
         activeTab={isAdminTab ? 'admin' : 'chat'}
         setActiveTab={(t) => {
           if (t === 'admin') window.location.href = '/chat?tab=admin';
@@ -428,6 +437,11 @@ function ChatPageContent() {
                 setModelSelectorOpen(true);
               }}
               hasGitHubToken={hasGitHubToken}
+              onOpenGmail={() => {
+                setModelSelectorTab('gmail');
+                setModelSelectorOpen(true);
+              }}
+              hasGmailToken={hasGmailToken}
             />
           </>
         )}

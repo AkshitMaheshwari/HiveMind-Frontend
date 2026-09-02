@@ -1,62 +1,53 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import {
+  Sparkles, Code, Brain, ChevronRight, Zap, Shield, FileSearch,
+  CheckCircle, ArrowUpRight, TrendingUp, Layers, Key, Lock, Cpu
+} from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { soundFx } from '@/lib/soundFx';
 import { Navbar } from '@/components/Navbar';
 import { AuthModal } from '@/components/AuthModal';
 import { ModelSelector, ModelConfig } from '@/components/ModelSelector';
-import { supabase } from '@/lib/supabase';
+import { SpotlightCard } from '@/components/SpotlightCard';
 import { HiveMindCanvas } from '@/components/HiveMindCanvas';
 import { SynapseNetworkGraph } from '@/components/SynapseNetworkGraph';
-import { TelemetryTicker } from '@/components/TelemetryTicker';
 import { AgentNetworkGrid } from '@/components/AgentNetworkGrid';
+import { TelemetryTicker } from '@/components/TelemetryTicker';
 import { SystemCapabilities } from '@/components/SystemCapabilities';
-import { SpotlightCard } from '@/components/SpotlightCard';
-import { soundFx } from '@/lib/soundFx';
-import {
-  Sparkles, ArrowRight, Compass, Scale, Code2, FileSearch,
-  Zap, Play, ChevronRight, CheckCircle2, Shield, GitPullRequest
-} from 'lucide-react';
-import Link from 'next/link';
 
-const QUICK_ACTIONS = [
+// ─── Preset Sample Prompts for Quick Action ──────────────────────────────────
+const STARTER_PROMPTS = [
   {
-    title: '🐙 Live GitHub DevOps & PR Agent',
-    dept: 'DevOps & Code Swarm',
-    icon: GitPullRequest,
-    prompt: 'Inspect repository AkshitMaheshwari/portfolio, display the full project tree, and explain the component architecture.',
-    color: '#a855f7',
-    spotlight: 'rgba(168, 85, 247, 0.12)',
-    border: 'rgba(168, 85, 247, 0.35)',
-  },
-  {
-    title: 'Investor Pitch & Financial Model',
-    dept: 'Strategy Swarm',
-    icon: Compass,
-    prompt: 'Build a comprehensive 9-slide investor pitch deck with TAM/SAM/SOM market sizing, competitor analysis, and 3-year unit economics for a B2B AI startup.',
+    title: 'Autonomous SaaS GTM & Investor Deck',
+    dept: 'Strategy & Financial Swarm',
+    icon: TrendingUp,
+    prompt: 'Construct a 3-year market penetration roadmap, complete unit economics model, and a 9-slide seed pitch deck for an enterprise AI agent platform.',
     color: '#f59e0b',
     spotlight: 'rgba(245, 158, 11, 0.12)',
     border: 'rgba(245, 158, 11, 0.35)',
   },
   {
-    title: 'Legal Contract & Risk Audit',
-    dept: 'Legal Swarm',
-    icon: Scale,
-    prompt: 'Review this SaaS Service Agreement, identify risky indemnity & limitation of liability clauses, draft safer fallbacks, and check GDPR/SOC2 compliance.',
+    title: 'Full-Stack Web App & Live Execution',
+    dept: 'Code Engineering Swarm',
+    icon: Code,
+    prompt: 'Build a responsive SaaS pricing calculator with currency toggles, tier comparisons, and animated slider controls using Tailwind CSS and vanilla JavaScript.',
+    color: '#8b5cf6',
+    spotlight: 'rgba(139, 92, 246, 0.12)',
+    border: 'rgba(139, 92, 246, 0.35)',
+  },
+  {
+    title: 'Enterprise Multi-Touch Cold Outreach',
+    dept: 'Sales & Growth Swarm',
+    icon: Zap,
+    prompt: 'Draft an aggressive 4-stage cold email sequence targeting VP of Engineering roles, addressing legacy latency and technical compliance objections.',
     color: '#06b6d4',
     spotlight: 'rgba(6, 182, 212, 0.12)',
     border: 'rgba(6, 182, 212, 0.35)',
   },
   {
-    title: 'Full-Stack Code & Sandbox Runner',
-    dept: 'Engineering Swarm',
-    icon: Code2,
-    prompt: 'Create a full-stack Python data pipeline with Monte Carlo simulation, execute it in the sandbox, and generate interactive charts.',
-    color: '#10b981',
-    spotlight: 'rgba(168, 185, 129, 0.12)',
-    border: 'rgba(16, 185, 129, 0.35)',
-  },
-  {
-    title: 'Deep RAG Document Intelligence',
+    title: 'Document Intelligence & Vector RAG',
     dept: 'Document Intelligence',
     icon: FileSearch,
     prompt: 'Query our uploaded private financial disclosures to extract revenue breakdown by geography with exact citation chunk references.',
@@ -70,8 +61,9 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
-  const [modelSelectorTab, setModelSelectorTab] = useState<'gemini' | 'groq' | 'openai' | 'github'>('gemini');
+  const [modelSelectorTab, setModelSelectorTab] = useState<'gemini' | 'groq' | 'openai' | 'github' | 'gmail'>('gemini');
   const [hasGitHubToken, setHasGitHubToken] = useState(false);
+  const [hasGmailToken, setHasGmailToken] = useState(false);
   const [modelConfig, setModelConfig] = useState<ModelConfig | null>(null);
 
   // Load saved model config
@@ -84,6 +76,7 @@ export default function Dashboard() {
       try {
         const parsed = JSON.parse(savedKeys);
         setHasGitHubToken(Boolean(parsed.github || parsed.github_token));
+        setHasGmailToken(Boolean(parsed.gmail || parsed.gmail_token));
       } catch {}
     }
     if (savedKeys && savedModel && savedProvider) {
@@ -127,6 +120,8 @@ export default function Dashboard() {
     const existingKeys = JSON.parse(localStorage.getItem('hivemind_api_keys') || '{}');
     existingKeys[config.provider] = config.apiKey;
     localStorage.setItem('hivemind_api_keys', JSON.stringify(existingKeys));
+    setHasGitHubToken(Boolean(existingKeys.github || existingKeys.github_token));
+    setHasGmailToken(Boolean(existingKeys.gmail || existingKeys.gmail_token));
   };
 
   const handleLaunchPrompt = (prompt: string) => {
@@ -143,7 +138,7 @@ export default function Dashboard() {
         user={user}
         onOpenAuth={() => setAuthModalOpen(true)}
         onSignOut={handleSignOut}
-        onOpenSettings={(tab?: 'gemini' | 'groq' | 'openai' | 'github') => {
+        onOpenSettings={(tab) => {
           if (tab) setModelSelectorTab(tab);
           setModelSelectorOpen(true);
         }}
@@ -152,6 +147,11 @@ export default function Dashboard() {
           setModelSelectorOpen(true);
         }}
         hasGitHubToken={hasGitHubToken}
+        onOpenGmail={() => {
+          setModelSelectorTab('gmail');
+          setModelSelectorOpen(true);
+        }}
+        hasGmailToken={hasGmailToken}
         activeTab="dashboard"
         setActiveTab={(t) => {
           if (t === 'admin') window.location.href = '/chat?tab=admin';
@@ -181,20 +181,19 @@ export default function Dashboard() {
               Orchestrate <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-amber-200 to-amber-500">Autonomous AI Swarms</span> with Zero Friction.
             </h1>
 
-            <p className="text-sm md:text-base text-slate-300 leading-relaxed max-w-2xl font-normal">
-              Deploy 40+ specialized agents across 10 autonomous departments — Business Strategy, Legal, Sales, Brand Design, Document RAG, Full-Stack Engineering, and Financial Analytics — collaborating concurrently in real-time.
+            <p className="text-base md:text-lg text-slate-300 font-normal leading-relaxed">
+              Deploy collaborative AI specialist teams in real-time. From full-stack code synthesis and financial market modeling to legal compliance audits and vector RAG retrieval.
             </p>
 
             <div className="flex flex-wrap items-center gap-4 pt-2">
-              <Link
-                href="/chat"
-                onClick={() => soundFx.playClick()}
+              <button
+                onClick={() => handleLaunchPrompt('Create a 3-year strategic business plan, investor pitch deck, and financial model for an AI infrastructure startup.')}
                 onMouseEnter={() => soundFx.playHover()}
-                className="inline-flex items-center gap-2.5 px-6 py-3.5 rounded-2xl font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                className="flex items-center gap-2.5 px-6 py-3 rounded-xl font-bold text-sm bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 shadow-lg shadow-amber-500/20 transition-all hover:scale-[1.02] active:scale-[0.98]"
               >
-                <span>Launch Swarm Workspace</span>
-                <ArrowRight className="w-4 h-4" />
-              </Link>
+                <span>Launch Autonomous Swarm</span>
+                <ArrowUpRight className="w-4 h-4" />
+              </button>
 
               <button
                 onClick={() => {
@@ -202,62 +201,63 @@ export default function Dashboard() {
                   setModelSelectorOpen(true);
                 }}
                 onMouseEnter={() => soundFx.playHover()}
-                className="inline-flex items-center gap-2 px-5 py-3.5 rounded-2xl font-semibold bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 hover:border-amber-500/40 shadow-sm transition-all"
+                className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm bg-slate-900/90 hover:bg-slate-850 border border-slate-700/80 hover:border-amber-500/40 text-slate-200 transition-all"
               >
-                <Zap className="w-4 h-4 text-amber-400" />
-                <span>Configure Models & Keys</span>
+                <Key className="w-4 h-4 text-amber-400" />
+                <span>Configure Keys & Integrations</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Quick Launch Swarm Prompt Cards */}
+        {/* ─── Starter Action Missions Grid ─── */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                <Play className="w-4 h-4 text-amber-400" />
-                Quick-Launch Autonomous Swarm Missions
-              </h2>
-              <p className="text-xs text-slate-400">Click any preset mission to dispatch multi-agent pipelines immediately</p>
+              <h2 className="text-lg font-bold text-slate-100">Featured Mission Directives</h2>
+              <p className="text-xs text-slate-400">Click any directive to launch an orchestrated multi-agent workflow immediately.</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {QUICK_ACTIONS.map((action, idx) => {
-              const Icon = action.icon;
+            {STARTER_PROMPTS.map((card, i) => {
+              const Icon = card.icon;
               return (
                 <SpotlightCard
-                  key={idx}
-                  spotlightColor={action.spotlight}
-                  borderColor={action.border}
-                  className="p-5 flex flex-col justify-between cursor-pointer group hover:scale-[1.01] transition-transform"
-                  onClick={() => handleLaunchPrompt(action.prompt)}
+                  key={i}
+                  spotlightColor={card.spotlight}
+                  borderColor={card.border}
+                  className="p-5 flex flex-col justify-between h-56 cursor-pointer group"
+                  onClick={() => handleLaunchPrompt(card.prompt)}
                 >
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <div
-                        className="w-9 h-9 rounded-xl flex items-center justify-center border border-white/5"
-                        style={{ backgroundColor: `${action.color}15`, color: action.color }}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center border shadow-inner transition-transform group-hover:scale-110"
+                        style={{ backgroundColor: `${card.color}15`, borderColor: `${card.color}40`, color: card.color }}
                       >
-                        <Icon className="w-4 h-4" />
+                        <Icon className="w-5 h-5" />
                       </div>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800 text-slate-300">
-                        {action.dept}
+                      <span
+                        className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border"
+                        style={{ backgroundColor: `${card.color}10`, borderColor: `${card.color}30`, color: card.color }}
+                      >
+                        {card.dept.split(' ')[0]}
                       </span>
                     </div>
+
                     <div>
-                      <h3 className="text-xs font-bold text-slate-100 group-hover:text-amber-300 transition-colors">
-                        {action.title}
+                      <h3 className="text-sm font-bold text-slate-100 group-hover:text-amber-400 transition-colors">
+                        {card.title}
                       </h3>
-                      <p className="text-[11px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">
-                        {action.prompt}
+                      <p className="text-xs text-slate-400 line-clamp-3 mt-1 leading-relaxed">
+                        {card.prompt}
                       </p>
                     </div>
                   </div>
 
-                  <div className="pt-4 mt-2 border-t border-slate-800/80 flex items-center justify-between text-xs font-semibold text-amber-400 group-hover:text-amber-300">
-                    <span>Dispatch Mission</span>
+                  <div className="flex items-center gap-1 text-xs font-semibold text-slate-400 group-hover:text-amber-400 transition-colors pt-2 border-t border-slate-800/80">
+                    <span>Deploy Swarm</span>
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </div>
                 </SpotlightCard>

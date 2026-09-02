@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   Brain, Zap, Cpu, Key, Check, Eye, EyeOff, ExternalLink,
-  ChevronDown, Sparkles, RefreshCw, X, GitPullRequest
+  ChevronDown, Sparkles, RefreshCw, X, GitPullRequest, Mail, Info, ShieldCheck, ArrowRight
 } from 'lucide-react';
 
 export interface ModelConfig {
@@ -34,7 +34,7 @@ interface ModelSelectorProps {
   initialTab?: ProviderType;
 }
 
-type ProviderType = 'gemini' | 'groq' | 'openai' | 'github';
+export type ProviderType = 'gemini' | 'groq' | 'openai' | 'github' | 'gmail';
 
 const PROVIDER_META: Record<ProviderType, {
   label: string;
@@ -47,7 +47,7 @@ const PROVIDER_META: Record<ProviderType, {
   keyHint: string;
 }> = {
   gemini: {
-    label: 'Google Gemini',
+    label: 'Gemini',
     color: 'from-blue-500/20 to-cyan-500/20',
     border: 'border-blue-500/40',
     accent: 'text-blue-400',
@@ -77,7 +77,7 @@ const PROVIDER_META: Record<ProviderType, {
     keyHint: 'Get from platform.openai.com',
   },
   github: {
-    label: 'GitHub Integration',
+    label: 'GitHub',
     color: 'from-purple-500/20 to-indigo-500/20',
     border: 'border-purple-500/40',
     accent: 'text-purple-400',
@@ -85,6 +85,16 @@ const PROVIDER_META: Record<ProviderType, {
     icon: <GitPullRequest className="w-4 h-4" />,
     placeholder: 'ghp_... or github_pat_...',
     keyHint: 'Get from github.com/settings/tokens (repo scope)',
+  },
+  gmail: {
+    label: 'Gmail',
+    color: 'from-rose-500/20 to-red-500/20',
+    border: 'border-rose-500/40',
+    accent: 'text-rose-400',
+    activeBg: 'bg-rose-500/15 border-rose-500/40 text-rose-400',
+    icon: <Mail className="w-4 h-4" />,
+    placeholder: 'ya29.a0... (OAuth Token) or App Password',
+    keyHint: 'From Google OAuth or Google App Passwords',
   },
 };
 
@@ -106,11 +116,14 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     groq:   currentConfig?.provider === 'groq'   ? currentConfig.apiKey : '',
     openai: currentConfig?.provider === 'openai' ? currentConfig.apiKey : '',
     github: '',
+    gmail: '',
   });
   const [githubSaved, setGithubSaved] = useState(false);
+  const [gmailSaved, setGmailSaved] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [modelRegistry, setModelRegistry] = useState<ModelRegistry | null>(null);
   const [loadingModels, setLoadingModels] = useState(false);
+  const [gmailMethod, setGmailMethod] = useState<'app_password' | 'oauth'>('app_password');
 
   // Sync initialTab when modal opens
   useEffect(() => {
@@ -125,10 +138,15 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        setApiKeys((prev) => ({ ...prev, ...parsed }));
+        setApiKeys((prev) => ({
+          ...prev,
+          ...parsed,
+          github: parsed.github_token || parsed.github || '',
+          gmail: parsed.gmail_token || parsed.gmail || '',
+        }));
       } catch {}
     }
-  }, []);
+  }, [isOpen]);
 
   // Fetch available models from backend
   const fetchModels = async () => {
@@ -138,62 +156,37 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
       if (res.ok) {
         const data: ModelRegistry = await res.json();
         setModelRegistry(data);
-        // Default model for current provider if none selected
-        if (!selectedModelId && activeProvider !== 'github') {
-          const providerModels = data[activeProvider as 'gemini' | 'groq' | 'openai'] || [];
-          if (providerModels.length > 0) {
-            setSelectedModelId(providerModels[0].id);
-          }
-        }
       }
-    } catch {
-      // Fallback static list if backend unreachable
-      setModelRegistry({
-        gemini: [
-          { id: 'gemini-2.0-flash', name: 'Gemini 2.0 Flash (Recommended)' },
-          { id: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-          { id: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' },
-        ],
-        groq: [
-          { id: 'llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Versatile)' },
-          { id: 'llama-3.1-8b-instant', name: 'Llama 3.1 8B (Instant)' },
-          { id: 'mixtral-8x7b-32768', name: 'Mixtral 8x7B' },
-        ],
-        openai: [
-          { id: 'gpt-4o', name: 'GPT-4o (Omni)' },
-          { id: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-          { id: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-        ],
-      });
-      if (!selectedModelId && activeProvider !== 'github') {
-        setSelectedModelId(
-          activeProvider === 'gemini' ? 'gemini-2.0-flash'
-          : activeProvider === 'groq'   ? 'llama-3.3-70b-versatile'
-          : 'gpt-4o'
-        );
-      }
+    } catch (e) {
+      console.error('Failed to fetch models from backend:', e);
     } finally {
       setLoadingModels(false);
     }
   };
 
   useEffect(() => {
-    if (isOpen) fetchModels();
+    if (isOpen && !modelRegistry) {
+      fetchModels();
+    }
   }, [isOpen]);
 
-  // When switching provider, set default model if current selection isn't in that provider
+  // Set default model on provider switch
   useEffect(() => {
-    if (!modelRegistry || activeProvider === 'github') return;
-    const models = modelRegistry[activeProvider as 'gemini' | 'groq' | 'openai'] || [];
-    if (models.length > 0 && !models.find((m: ModelEntry) => m.id === selectedModelId)) {
-      setSelectedModelId(models[0].id);
+    if (activeProvider !== 'github' && activeProvider !== 'gmail' && modelRegistry) {
+      const providerModels = modelRegistry[activeProvider as 'gemini' | 'groq' | 'openai'] || [];
+      if (providerModels.length > 0) {
+        const isCurrentValid = providerModels.some((m: ModelEntry) => m.id === selectedModelId);
+        if (!isCurrentValid) {
+          setSelectedModelId(providerModels[0].id);
+        }
+      }
     }
   }, [activeProvider, modelRegistry, selectedModelId]);
 
   if (!isOpen) return null;
 
   const meta = PROVIDER_META[activeProvider];
-  const models: ModelEntry[] = (activeProvider !== 'github' && modelRegistry)
+  const models: ModelEntry[] = (activeProvider !== 'github' && activeProvider !== 'gmail' && modelRegistry)
     ? (modelRegistry[activeProvider as 'gemini' | 'groq' | 'openai'] || [])
     : [];
   const currentApiKey = apiKeys[activeProvider] || '';
@@ -201,12 +194,29 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   const handleSave = () => {
     if (activeProvider === 'github') {
-      const updatedKeys = { ...apiKeys, github: currentApiKey.trim(), github_token: currentApiKey.trim() };
+      const updatedKeys = {
+        ...apiKeys,
+        github: currentApiKey.trim(),
+        github_token: currentApiKey.trim(),
+      };
       localStorage.setItem('hivemind_api_keys', JSON.stringify(updatedKeys));
       setGithubSaved(true);
       setTimeout(() => setGithubSaved(false), 3000);
       return;
     }
+
+    if (activeProvider === 'gmail') {
+      const updatedKeys = {
+        ...apiKeys,
+        gmail: currentApiKey.trim(),
+        gmail_token: currentApiKey.trim(),
+      };
+      localStorage.setItem('hivemind_api_keys', JSON.stringify(updatedKeys));
+      setGmailSaved(true);
+      setTimeout(() => setGmailSaved(false), 3000);
+      return;
+    }
+
     if (!selectedModelId || !currentApiKey.trim()) return;
     const config: ModelConfig = {
       provider: activeProvider as 'gemini' | 'groq' | 'openai',
@@ -227,16 +237,16 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl bg-[#0f1117] border border-slate-800 rounded-2xl shadow-2xl relative overflow-hidden">
+      <div className="w-full max-w-2xl bg-[#0f1117] border border-slate-800 rounded-2xl shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/50 flex-shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
               <Sparkles className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-100">LLM Provider & Model Configuration</h2>
-              <p className="text-xs text-slate-400">Bring Your Own Key (BYOK) — Keys stored securely in browser</p>
+              <h2 className="text-sm font-bold text-slate-100">LLM Provider & Integrations</h2>
+              <p className="text-xs text-slate-400">Bring Your Own Key (BYOK) — Keys stored securely in local browser storage</p>
             </div>
           </div>
           <button
@@ -248,13 +258,13 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5">
+        <div className="p-6 space-y-5 overflow-y-auto">
           {/* Provider Tabs */}
           <div>
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
               Select Provider / Integration
             </label>
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-5 gap-2">
               {(Object.keys(PROVIDER_META) as ProviderType[]).map((prov) => {
                 const p = PROVIDER_META[prov];
                 const isActive = activeProvider === prov;
@@ -263,7 +273,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   <button
                     key={prov}
                     onClick={() => setActiveProvider(prov)}
-                    className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border text-xs font-semibold transition-all ${
+                    className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border text-xs font-semibold transition-all ${
                       isActive
                         ? p.activeBg + ' shadow-md'
                         : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200'
@@ -271,7 +281,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                   >
                     <div className="flex items-center gap-1">
                       {p.icon}
-                      <span>{p.label}</span>
+                      <span className="truncate">{p.label}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       {hasKey ? (
@@ -288,12 +298,123 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             </div>
           </div>
 
-          {/* API Key Input */}
+          {/* ══════════════ GMAIL INTEGRATION ONBOARDING GUIDE ══════════════ */}
+          {activeProvider === 'gmail' && (
+            <div className="space-y-4">
+              {/* Method Switcher */}
+              <div className="flex items-center justify-between p-1 bg-slate-900 border border-slate-800 rounded-xl text-xs font-medium">
+                <button
+                  type="button"
+                  onClick={() => setGmailMethod('app_password')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-center transition-all ${
+                    gmailMethod === 'app_password'
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  ⚡ Method 1: Google App Password (Recommended · 1 min)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setGmailMethod('oauth')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg text-center transition-all ${
+                    gmailMethod === 'oauth'
+                      ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  🏢 Method 2: Google Cloud OAuth 2.0 Token
+                </button>
+              </div>
+
+              {/* Step-by-step instructions box */}
+              {gmailMethod === 'app_password' ? (
+                <div className="p-4 rounded-xl bg-slate-900/80 border border-rose-500/30 space-y-3 text-xs text-slate-300">
+                  <div className="font-semibold text-rose-300 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-rose-400" />
+                    How to get your Google App Password (Step-by-Step):
+                  </div>
+                  <div className="space-y-2 text-[11px] text-slate-300 leading-relaxed">
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold flex-shrink-0 text-[10px]">1</span>
+                      <div>
+                        Enable <strong>2-Step Verification</strong> on your Google Account if not already enabled.
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold flex-shrink-0 text-[10px]">2</span>
+                      <div>
+                        Open Google Security:{' '}
+                        <a
+                          href="https://myaccount.google.com/apppasswords"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-rose-400 hover:text-rose-300 underline inline-flex items-center gap-0.5 font-semibold"
+                        >
+                          myaccount.google.com/apppasswords <ExternalLink className="w-3 h-3 ml-0.5" />
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold flex-shrink-0 text-[10px]">3</span>
+                      <div>
+                        Enter App name as <strong>"HiveMind AI"</strong> and click <strong>Create</strong>.
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold flex-shrink-0 text-[10px]">4</span>
+                      <div>
+                        Copy the generated <strong>16-character code</strong> and paste it in the field below.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-4 rounded-xl bg-slate-900/80 border border-rose-500/30 space-y-3 text-xs text-slate-300">
+                  <div className="font-semibold text-rose-300 flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-rose-400" />
+                    How to get your Google Cloud OAuth Token:
+                  </div>
+                  <div className="space-y-2 text-[11px] text-slate-300 leading-relaxed">
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold flex-shrink-0 text-[10px]">1</span>
+                      <div>
+                        Open{' '}
+                        <a
+                          href="https://console.cloud.google.com/apis/library/gmail.googleapis.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-rose-400 hover:text-rose-300 underline inline-flex items-center gap-0.5 font-semibold"
+                        >
+                          Google Cloud Console <ExternalLink className="w-3 h-3 ml-0.5" />
+                        </a>{' '}
+                        and <strong>Enable Gmail API</strong>.
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold flex-shrink-0 text-[10px]">2</span>
+                      <div>
+                        Configure OAuth consent screen with scope <code className="bg-slate-950 px-1 rounded text-rose-300 border border-slate-800">https://mail.google.com/</code>.
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <span className="w-4 h-4 rounded-full bg-rose-500/20 text-rose-300 flex items-center justify-center font-bold flex-shrink-0 text-[10px]">3</span>
+                      <div>
+                        Generate your Bearer Access Token (or via OAuth Playground) and paste it below.
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* API Key / Token Input */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
                 <Key className="w-3.5 h-3.5 text-amber-400" />
-                {meta.label} API Key / Token
+                {meta.label} {activeProvider === 'gmail' ? 'Access Token / App Password' : (activeProvider === 'github' ? 'Personal Access Token' : 'API Key')}
               </label>
               <span className="text-[11px] text-slate-500">{meta.keyHint}</span>
             </div>
@@ -315,8 +436,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             </div>
           </div>
 
-          {/* Model Selector (Only for LLM providers, not github token) */}
-          {activeProvider !== 'github' && (
+          {/* Model Selector (Only for LLM providers, not github or gmail) */}
+          {activeProvider !== 'github' && activeProvider !== 'gmail' && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-300">
@@ -377,13 +498,30 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
               </div>
             </div>
           )}
+
+          {/* Gmail Feature Capabilities Note */}
+          {activeProvider === 'gmail' && (
+            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs space-y-2 text-slate-300">
+              <div className="font-semibold text-rose-300 flex items-center gap-1.5">
+                <Mail className="w-4 h-4" /> What can the Gmail AI Agent do?
+              </div>
+              <ul className="text-[11px] text-slate-400 space-y-1 list-disc list-inside">
+                <li><strong>Inbox Triage:</strong> Read and summarize recent/unread messages with action items.</li>
+                <li><strong>Search Emails:</strong> Find specific invoices, tickets, or client messages.</li>
+                <li><strong>Draft AI Replies:</strong> Create personalized response drafts in your Gmail Drafts.</li>
+                <li><strong>Send Messages:</strong> Compose and send live emails directly from chat.</li>
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/50">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/50 flex-shrink-0">
           <span className="text-[11px] text-slate-500">
             {activeProvider === 'github'
               ? (githubSaved ? '✅ GitHub Token Saved!' : 'Token saved locally in browser')
+              : activeProvider === 'gmail'
+              ? (gmailSaved ? '✅ Gmail Token Saved!' : 'Token saved locally in browser')
               : (currentApiKey ? '✅ Key loaded' : '⚠️ Key required to run')}
           </span>
           <div className="flex items-center gap-2">
@@ -395,10 +533,18 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             </button>
             <button
               onClick={handleSave}
-              disabled={activeProvider !== 'github' && (!currentApiKey.trim() || !selectedModelId)}
+              disabled={
+                activeProvider !== 'github' &&
+                activeProvider !== 'gmail' &&
+                (!currentApiKey.trim() || !selectedModelId)
+              }
               className="px-5 py-2 rounded-xl text-xs font-bold bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 disabled:opacity-40 transition-all shadow-md"
             >
-              {activeProvider === 'github' ? 'Save GitHub Token' : 'Apply & Save'}
+              {activeProvider === 'github'
+                ? 'Save GitHub Token'
+                : activeProvider === 'gmail'
+                ? 'Save Gmail Token'
+                : 'Apply & Save'}
             </button>
           </div>
         </div>

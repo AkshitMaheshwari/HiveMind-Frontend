@@ -5,7 +5,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   Bot, User, Code, Eye, ExternalLink, ChevronDown, ChevronRight,
-  Sparkles, Terminal, Copy, Check as CheckIcon, GitPullRequest
+  Sparkles, Terminal, Copy, Check as CheckIcon, GitPullRequest, Mail
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -27,6 +27,8 @@ interface ChatThreadProps {
   onOpenAuth: () => void;
   onOpenGitHub?: () => void;
   hasGitHubToken?: boolean;
+  onOpenGmail?: () => void;
+  hasGmailToken?: boolean;
 }
 
 // ─── Code block with copy button ─────────────────────────────────────────────
@@ -115,11 +117,36 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
           <span>{children}</span>
         </li>
       ),
-      strong: ({ children }) => (
-        <strong className="font-semibold text-slate-100">{children}</strong>
+      code: ({ node, className, children, ...props }: any) => {
+        const match = /language-(\w+)/.exec(className || '');
+        const isInline = !match && typeof children === 'string' && !children.includes('\n');
+        if (isInline) {
+          return (
+            <code className="px-1.5 py-0.5 rounded bg-slate-800 text-amber-300 font-mono text-xs border border-slate-700/50" {...props}>
+              {children}
+            </code>
+          );
+        }
+        return <CodeBlock language={match ? match[1] : ''}>{String(children).replace(/\n$/, '')}</CodeBlock>;
+      },
+      table: ({ children }) => (
+        <div className="overflow-x-auto my-3 rounded-xl border border-slate-800">
+          <table className="w-full text-xs text-slate-300 border-collapse">{children}</table>
+        </div>
       ),
-      em: ({ children }) => (
-        <em className="italic text-slate-300">{children}</em>
+      thead: ({ children }) => (
+        <thead className="bg-slate-900/80 border-b border-slate-800 text-slate-200">{children}</thead>
+      ),
+      th: ({ children }) => (
+        <th className="px-3 py-2 text-left font-semibold">{children}</th>
+      ),
+      td: ({ children }) => (
+        <td className="px-3 py-2 border-t border-slate-800/60">{children}</td>
+      ),
+      blockquote: ({ children }) => (
+        <blockquote className="border-l-2 border-amber-500/50 pl-3 my-2 text-slate-400 italic text-xs">
+          {children}
+        </blockquote>
       ),
       a: ({ href, children }) => (
         <a
@@ -131,69 +158,13 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
           {children}
         </a>
       ),
-      code: ({ className, children, ...props }: any) => {
-        return (
-          <code className="px-1.5 py-0.5 rounded-md bg-slate-800 text-amber-300 text-[12px] font-mono border border-slate-700" {...props}>
-            {children}
-          </code>
-        );
-      },
-      pre: (preProps: any) => {
-        const codeElement = preProps.children;
-        if (React.isValidElement(codeElement)) {
-          const { className, children } = codeElement.props as any;
-          const match = /language-(\w+)/.exec(className || '');
-          const language = match ? match[1] : '';
-          const extractText = (node: any): string => {
-            if (typeof node === 'string') return node;
-            if (typeof node === 'number') return String(node);
-            if (Array.isArray(node)) return node.map(extractText).join('');
-            if (React.isValidElement(node) && (node.props as any)?.children) {
-              return extractText((node.props as any).children);
-            }
-            return '';
-          };
-          const codeString = extractText(children).replace(/\n$/, '');
-          return <CodeBlock language={language}>{codeString}</CodeBlock>;
-        }
-        return <pre className="overflow-x-auto my-3 p-4 rounded-xl border border-slate-800 bg-slate-950 text-xs font-mono text-slate-300">{preProps.children}</pre>;
-      },
-      blockquote: ({ children }) => (
-        <blockquote className="border-l-2 border-amber-500/50 pl-4 my-3 text-slate-400 italic">
-          {children}
-        </blockquote>
-      ),
-      hr: () => <hr className="border-slate-800 my-4" />,
-      table: ({ children }) => (
-        <div className="overflow-x-auto my-3 rounded-xl border border-slate-800">
-          <table className="w-full text-xs">{children}</table>
-        </div>
-      ),
-      thead: ({ children }) => (
-        <thead className="bg-slate-900/80 text-slate-300 font-medium">{children}</thead>
-      ),
-      tbody: ({ children }) => (
-        <tbody className="divide-y divide-slate-800">{children}</tbody>
-      ),
-      tr: ({ children }) => <tr className="hover:bg-slate-900/40">{children}</tr>,
-      th: ({ children }) => (
-        <th className="px-3 py-2 text-left text-[11px] uppercase tracking-wider">{children}</th>
-      ),
-      td: ({ children }) => (
-        <td className="px-3 py-2 text-slate-300">{children}</td>
-      ),
     }}
   >
     {cleanMarkdownText(content)}
   </ReactMarkdown>
 );
 
-// ─── Typing cursor ────────────────────────────────────────────────────────────
-const TypingCursor: React.FC = () => (
-  <span className="inline-block w-0.5 h-4 bg-amber-400 ml-0.5 animate-pulse align-text-bottom" />
-);
-
-// ─── Main ChatThread ──────────────────────────────────────────────────────────
+// ─── Main ChatThread Component ────────────────────────────────────────────────
 
 export const ChatThread: React.FC<ChatThreadProps> = ({
   messages,
@@ -203,6 +174,8 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   onOpenAuth,
   onOpenGitHub,
   hasGitHubToken,
+  onOpenGmail,
+  hasGmailToken,
 }) => {
   const [prompt, setPrompt] = useState('');
   const [activeTabs, setActiveTabs] = useState<Record<string, 'report' | 'preview'>>({});
@@ -357,6 +330,65 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                   className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-purple-500/30 text-purple-200 text-[11px] transition-all hover:border-purple-400"
                 >
                   🚀 Fix bug & open Pull Request
+                </button>
+              </div>
+            </div>
+
+            {/* Gmail & Email Operations Featured Integration Banner */}
+            <div className="w-full max-w-4xl p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950/40 via-red-950/30 to-slate-900/80 border border-rose-500/30 shadow-xl text-left relative overflow-hidden backdrop-blur-sm mt-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-start sm:items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 flex-shrink-0 shadow-inner">
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-bold text-slate-100">📬 Gmail & Inbox Swarm Agent</h3>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        Live Integration
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Triage unread emails, summarize conversation threads, draft tailored replies, and send emails via Gmail.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    if (onOpenGmail) onOpenGmail();
+                  }}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 flex-shrink-0 ${
+                    hasGmailToken
+                      ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30'
+                      : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white hover:shadow-rose-500/25'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  {hasGmailToken ? 'Gmail Connected 🟢' : 'Connect Gmail Account'}
+                </button>
+              </div>
+
+              {/* Quick suggestion pills */}
+              <div className="flex flex-wrap items-center gap-2 mt-3.5 pt-3 border-t border-rose-500/20 text-xs">
+                <span className="text-[11px] text-rose-300/80 font-medium">Try asking:</span>
+                <button
+                  onClick={() => handleExampleClick("Check my unread emails from today and summarize them")}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-rose-950/60 border border-rose-500/30 text-rose-200 text-[11px] transition-all hover:border-rose-400 font-medium"
+                >
+                  📬 Check unread emails
+                </button>
+                <button
+                  onClick={() => handleExampleClick("Search my emails for invoice from Stripe")}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-rose-950/60 border border-rose-500/30 text-rose-200 text-[11px] transition-all hover:border-rose-400 font-medium"
+                >
+                  🔍 Search inbox for invoices
+                </button>
+                <button
+                  onClick={() => handleExampleClick("Draft a professional follow-up email to Alex about the project meeting")}
+                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-rose-950/60 border border-rose-500/30 text-rose-200 text-[11px] transition-all hover:border-rose-400 font-medium"
+                >
+                  ✍️ Draft reply to email
                 </button>
               </div>
             </div>
@@ -601,6 +633,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                               ev.department === 'code' ? 'bg-purple-500/20 text-purple-400 border-purple-500/30' :
                               ev.department === 'research' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
                               ev.department === 'finance' ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                              ev.department === 'sales' ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' :
                               'bg-slate-800 text-slate-400 border-slate-700';
 
                             return (
@@ -647,7 +680,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
           <div className="max-w-4xl mx-auto space-y-2">
             {/* Quick Agent Tool Badges */}
             <div className="flex items-center justify-between px-1 text-xs">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={() => onOpenGitHub?.()}
@@ -663,23 +696,36 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => setPrompt('Show me the project structure of ')}
-                  className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all"
+                  onClick={() => onOpenGmail?.()}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
+                    hasGmailToken
+                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
+                      : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-rose-300 hover:border-rose-500/30'
+                  }`}
                 >
-                  <span>📁 Repo Tree</span>
+                  <Mail className="w-3 h-3 text-rose-400" />
+                  <span>{hasGmailToken ? 'Gmail Active' : 'Connect Gmail'}</span>
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setPrompt('In repository owner/repo, ')}
+                  onClick={() => setPrompt('Check my unread emails from today and summarize them')}
                   className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all"
                 >
-                  <span>🚀 Open PR</span>
+                  <span>📬 Check Inbox</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPrompt('Show me the project structure of ')}
+                  className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all"
+                >
+                  <span>📁 Repo Tree</span>
                 </button>
               </div>
 
-              <span className="text-[10px] text-slate-500 font-mono hidden md:inline">
-                Swarm Core · Live DevOps Mode
+              <span className="text-[10px] text-slate-500 font-mono hidden lg:inline">
+                Swarm Core · Live Integrations
               </span>
             </div>
 
@@ -692,7 +738,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                   onKeyDown={handleKeyDown}
                   disabled={loading}
                   rows={1}
-                  placeholder="Ask anything — 'Show structure of owner/repo', code, research, pitch decks... (Shift+Enter for newline)"
+                  placeholder="Ask anything — 'Check unread emails', 'Show repo structure', code, research... (Shift+Enter for newline)"
                   className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-5 pr-5 py-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 transition-all resize-none overflow-hidden leading-relaxed"
                 />
               </div>

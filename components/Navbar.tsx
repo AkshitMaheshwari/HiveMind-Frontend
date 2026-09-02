@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   User, LogIn, LogOut, Shield, Key, Sparkles, Layers, ChevronDown, Library,
-  Volume2, VolumeX, Activity, GitPullRequest
+  Volume2, VolumeX, Activity, GitPullRequest, Mail
 } from 'lucide-react';
 import { soundFx } from '@/lib/soundFx';
 
@@ -11,9 +11,11 @@ interface NavbarProps {
   user: any;
   onOpenAuth: () => void;
   onSignOut: () => void;
-  onOpenSettings: (tab?: 'gemini' | 'groq' | 'openai' | 'github') => void;
+  onOpenSettings: (tab?: 'gemini' | 'groq' | 'openai' | 'github' | 'gmail') => void;
   onOpenGitHub?: () => void;
   hasGitHubToken?: boolean;
+  onOpenGmail?: () => void;
+  hasGmailToken?: boolean;
   activeTab: 'dashboard' | 'chat' | 'admin' | 'documents';
   setActiveTab: (tab: 'dashboard' | 'chat' | 'admin' | 'documents') => void;
   selectedModelName?: string;
@@ -26,6 +28,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenSettings,
   onOpenGitHub,
   hasGitHubToken,
+  onOpenGmail,
+  hasGmailToken,
   activeTab,
   setActiveTab,
   selectedModelName,
@@ -125,7 +129,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         )}
       </div>
 
-      {/* Right Controls: SFX, GitHub, Model Selector & Auth */}
+      {/* Right Controls: SFX, GitHub, Gmail, Model Selector & Auth */}
       <div className="flex items-center gap-2.5">
         {/* Audio SFX Toggle */}
         <button
