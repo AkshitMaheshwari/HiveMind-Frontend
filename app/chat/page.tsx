@@ -274,11 +274,6 @@ function ChatPageContent() {
             if (taskData.status === 'done' || taskData.status === 'error') {
               isTaskFinished = true;
               const content = taskData.final_output || taskData.error || 'Task completed.';
-              setMessages((prev) =>
-                prev
-                  .filter((m) => m.id !== 'thinking')
-                  .concat([{ id: streamMsgId, role: 'assistant', content, streaming: false, events: taskData.events || eventsList }])
-              );
               setMessages((prev) => {
                 const filtered = prev.filter((m) => m.id !== 'thinking' && m.id !== streamMsgId);
                 return [
@@ -373,8 +368,6 @@ function ChatPageContent() {
       };
 
       socket.onclose = () => {
-        // Check if finished via polling
-        setTimeout(pollTaskCompletion, 1000);
         // Check if finished via polling if not already finished
         if (!isTaskFinished) {
           setTimeout(pollTaskCompletion, 1000);
