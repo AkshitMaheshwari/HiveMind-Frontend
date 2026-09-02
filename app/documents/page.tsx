@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getApiUrl } from '@/lib/config';
 import {
   FileText, Sheet, File, Upload, Trash2, RefreshCw,
   Loader2, AlertCircle, CheckCircle2, Sparkles, Database,
@@ -73,7 +74,7 @@ export default function DocumentsPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) { setDocs([]); return; }
-      const res = await fetch('http://localhost:8000/api/documents', {
+      const res = await fetch(getApiUrl('/api/documents'), {
         headers: { Authorization: `Bearer ${session.access_token}` },
       });
       if (res.ok) setDocs(await res.json());
@@ -99,7 +100,7 @@ export default function DocumentsPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('http://localhost:8000/api/upload', {
+      const res = await fetch(getApiUrl('/api/upload'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: formData,
@@ -141,7 +142,7 @@ export default function DocumentsPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       const res = await fetch(
-        `http://localhost:8000/api/documents/${encodeURIComponent(doc.source_identifier)}`,
+        getApiUrl(`/api/documents/${encodeURIComponent(doc.source_identifier)}`),
         { method: 'DELETE', headers: { Authorization: `Bearer ${session?.access_token}` } }
       );
       if (res.ok) {

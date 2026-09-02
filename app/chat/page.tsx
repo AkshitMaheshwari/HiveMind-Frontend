@@ -9,6 +9,7 @@ import { AuthModal } from '@/components/AuthModal';
 import { ModelSelector, ModelConfig } from '@/components/ModelSelector';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { getApiUrl, getWebSocketUrl } from '@/lib/config';
 
 interface ChatMessage {
   id: string;
@@ -133,7 +134,7 @@ function ChatPageContent() {
       if (!session?.user) { setConversations([]); return; }
       const headers: Record<string, string> = {};
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
-      const res = await fetch('http://localhost:8000/api/conversations', { headers });
+      const res = await fetch(getApiUrl('/api/conversations'), { headers });
       if (res.ok) setConversations(await res.json());
     } catch (e) {
       console.error('Failed to fetch conversations:', e);
@@ -169,7 +170,7 @@ function ChatPageContent() {
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
 
       const res = await fetch(
-        `http://localhost:8000/api/conversation/${conversationId}/messages`,
+        getApiUrl(`/api/conversation/${conversationId}/messages`),
         { headers }
       );
 
@@ -239,7 +240,7 @@ function ChatPageContent() {
       const headers: Record<string, string> = { 'Content-Type': 'application/json' };
       if (accessToken) headers['Authorization'] = `Bearer ${accessToken}`;
 
-      const res = await fetch('http://localhost:8000/api/chat', {
+      const res = await fetch(getApiUrl('/api/chat'), {
         method: 'POST',
         headers,
         body: JSON.stringify({
@@ -255,7 +256,7 @@ function ChatPageContent() {
       const taskId = data.task_id;
 
       // Open WebSocket for real-time streaming
-      const wsUrl = `ws://localhost:8000/ws/${taskId}?token=${encodeURIComponent(accessToken)}`;
+      const wsUrl = getWebSocketUrl(taskId, accessToken);
       if (wsRef.current) wsRef.current.close();
       const socket = new WebSocket(wsUrl);
       wsRef.current = socket;
@@ -268,7 +269,7 @@ function ChatPageContent() {
       const pollTaskCompletion = async () => {
         if (isTaskFinished) return true;
         try {
-          const pollRes = await fetch(`http://localhost:8000/api/task/${taskId}`, { headers });
+          const pollRes = await fetch(getApiUrl(`/api/task/${taskId}`), { headers });
           if (pollRes.ok) {
             const taskData = await pollRes.json();
             if (taskData.status === 'done' || taskData.status === 'error') {

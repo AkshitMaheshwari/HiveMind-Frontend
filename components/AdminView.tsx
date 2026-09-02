@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { getApiUrl } from '@/lib/config';
 import { Shield, Activity, Users, Database, Clock, CheckCircle, AlertCircle, RefreshCw } from 'lucide-react';
 
 interface AdminViewProps {
@@ -15,7 +16,7 @@ export const AdminView: React.FC<AdminViewProps> = ({ user }) => {
     setLoading(true);
     try {
       const token = user?.access_token || '';
-      const res = await fetch('http://localhost:8000/api/admin/tasks', {
+      const res = await fetch(getApiUrl('/api/admin/tasks'), {
         headers: {
           Authorization: `Bearer ${token}`,
         },

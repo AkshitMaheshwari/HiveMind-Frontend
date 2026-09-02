@@ -5,6 +5,7 @@ import {
   MessageSquare, Plus, MessagesSquare, Clock, Trash2, AlertTriangle, Loader2
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { getApiUrl } from '@/lib/config';
 import { DocumentUpload } from '@/components/DocumentUpload';
 import { soundFx } from '@/lib/soundFx';
 
@@ -110,7 +111,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       // Fetch all task IDs in this conversation then delete each one
       const res = await fetch(
-        `http://localhost:8000/api/conversation/${confirmConv.conversation_id}/messages`,
+        getApiUrl(`/api/conversation/${confirmConv.conversation_id}/messages`),
         { headers }
       );
 

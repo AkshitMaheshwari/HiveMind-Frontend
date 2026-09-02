@@ -5,6 +5,7 @@ import {
   Brain, Zap, Cpu, Key, Check, Eye, EyeOff, ExternalLink,
   ChevronDown, Sparkles, RefreshCw, X, GitPullRequest, Mail, Info, ShieldCheck, ArrowRight
 } from 'lucide-react';
+import { getApiUrl } from '@/lib/config';
 
 export interface ModelConfig {
   provider: 'gemini' | 'groq' | 'openai';
@@ -152,7 +153,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
   const fetchModels = async () => {
     setLoadingModels(true);
     try {
-      const res = await fetch('http://localhost:8000/api/models');
+      const res = await fetch(getApiUrl('/api/models'));
       if (res.ok) {
         const data: ModelRegistry = await res.json();
         setModelRegistry(data);

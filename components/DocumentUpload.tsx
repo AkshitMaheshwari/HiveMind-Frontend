@@ -7,6 +7,7 @@ import {
   GitBranch, ArrowRight
 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
+import { getApiUrl } from '@/lib/config';
 
 interface UploadedFile {
   id: string;
@@ -53,7 +54,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ user }) => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const res = await fetch('http://localhost:8000/api/upload', {
+      const res = await fetch(getApiUrl('/api/upload'), {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
         body: formData,
@@ -101,7 +102,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ user }) => {
       const savedKeys = JSON.parse(localStorage.getItem('hivemind_api_keys') || '{}');
       const token = savedKeys.github || savedKeys.github_token || '';
 
-      const res = await fetch('http://localhost:8000/api/github/ingest', {
+      const res = await fetch(getApiUrl('/api/github/ingest'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
