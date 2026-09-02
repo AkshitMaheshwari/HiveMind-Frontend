@@ -262,20 +262,30 @@ function ChatPageContent() {
 
       const streamMsgId = `stream-${taskId}`;
       let eventsList: any[] = [];
+      let isTaskFinished = false;
 
       // Fallback polling helper if WS closes or drops
       const pollTaskCompletion = async () => {
+        if (isTaskFinished) return true;
         try {
           const pollRes = await fetch(`http://localhost:8000/api/task/${taskId}`, { headers });
           if (pollRes.ok) {
             const taskData = await pollRes.json();
             if (taskData.status === 'done' || taskData.status === 'error') {
+              isTaskFinished = true;
               const content = taskData.final_output || taskData.error || 'Task completed.';
               setMessages((prev) =>
                 prev
                   .filter((m) => m.id !== 'thinking')
                   .concat([{ id: streamMsgId, role: 'assistant', content, streaming: false, events: taskData.events || eventsList }])
               );
+              setMessages((prev) => {
+                const filtered = prev.filter((m) => m.id !== 'thinking' && m.id !== streamMsgId);
+                return [
+                  ...filtered,
+                  { id: streamMsgId, role: 'assistant', content, streaming: false, events: taskData.events || eventsList }
+                ];
+              });
               setLoading(false);
               fetchConversations();
               return true;
@@ -325,6 +335,7 @@ function ChatPageContent() {
           eventsList.push(parsed);
 
           if (parsed.event === 'task_done') {
+            isTaskFinished = true;
             clearInterval(pollInterval);
             setMessages((prev) => {
               const existing = prev.find((m) => m.id === streamMsgId);
@@ -343,6 +354,7 @@ function ChatPageContent() {
           }
 
           if (parsed.event === 'error') {
+            isTaskFinished = true;
             clearInterval(pollInterval);
             setMessages((prev) =>
               prev
@@ -363,6 +375,10 @@ function ChatPageContent() {
       socket.onclose = () => {
         // Check if finished via polling
         setTimeout(pollTaskCompletion, 1000);
+        // Check if finished via polling if not already finished
+        if (!isTaskFinished) {
+          setTimeout(pollTaskCompletion, 1000);
+        }
       };
 
     } catch (e: any) {

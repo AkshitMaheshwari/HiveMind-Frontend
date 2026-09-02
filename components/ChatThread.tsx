@@ -477,6 +477,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
           </div>
         ) : (
           messages.map((msg) => {
+          messages.map((msg, index) => {
             const htmlContent = msg.content ? extractHtml(msg.content) : null;
             const currentTab = activeTabs[msg.id] || 'report';
             const logsOpen = showLogs[msg.id] || false;
@@ -494,6 +495,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
             return (
               <div
                 key={msg.id}
+                key={`${msg.id || 'msg'}-${index}`}
                 className={`flex gap-3 max-w-4xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role !== 'user' && (
