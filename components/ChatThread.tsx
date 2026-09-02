@@ -5,7 +5,8 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
   Bot, User, Code, Eye, ExternalLink, ChevronDown, ChevronRight,
-  Sparkles, Terminal, Copy, Check as CheckIcon, GitPullRequest, Mail
+  Sparkles, Terminal, Copy, Check as CheckIcon, GitPullRequest, Mail,
+  ArrowUpRight, Zap, TrendingUp, FileText, ArrowRight
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -32,7 +33,6 @@ interface ChatThreadProps {
 }
 
 // ─── Code block with copy button ─────────────────────────────────────────────
-
 const CodeBlock: React.FC<{ children: string; language?: string }> = ({ children, language }) => {
   const [copied, setCopied] = useState(false);
   const copy = () => {
@@ -62,7 +62,6 @@ const CodeBlock: React.FC<{ children: string; language?: string }> = ({ children
 };
 
 // ─── Markdown renderer ────────────────────────────────────────────────────────
-
 function cleanMarkdownText(content: string): string {
   if (!content) return '';
   const str = content.trim();
@@ -165,7 +164,6 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
 );
 
 // ─── Main ChatThread Component ────────────────────────────────────────────────
-
 export const ChatThread: React.FC<ChatThreadProps> = ({
   messages,
   onSubmitPrompt,
@@ -183,17 +181,15 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Auto-scroll to bottom when messages update
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Auto-resize textarea
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setPrompt(e.target.value);
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 180)}px`;
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 160)}px`;
     }
   };
 
@@ -214,7 +210,6 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
     }
   };
 
-  // Helper to extract HTML code block
   const extractHtml = (content: string): string | null => {
     const htmlRegex = /```html\n([\s\S]*?)```/i;
     const match = content.match(htmlRegex);
@@ -249,232 +244,196 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-4rem)] bg-[var(--bg-main)] relative">
-      {/* Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] bg-[#070a12] relative overflow-hidden">
+      {/* ─── Messages & Content Scroll Area ─── */}
+      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6">
         {messages.length === 0 ? (
-          <div className="max-w-4xl mx-auto flex flex-col items-center justify-center h-full text-center space-y-6 pt-16">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 amber-glow mb-2">
-              <Sparkles className="w-8 h-8" />
+          <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6 py-4">
+            
+            {/* Clean Hero Header */}
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-semibold mb-2">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Autonomous Swarm Orchestrator</span>
+              </div>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-slate-100 tracking-tight">
+                Where would you like to start?
+              </h2>
+              <p className="text-xs md:text-sm text-slate-400 max-w-lg mx-auto">
+                Delegate full-stack code synthesis, live GitHub operations, inbox triage, and financial models to specialized AI departments.
+              </p>
             </div>
-            <h2 className="text-2xl font-bold text-slate-100">Start a new task</h2>
-            <p className="text-sm text-slate-400 max-w-lg">
-              Delegate complex tasks, web generation, data engineering, and more to your autonomous AI swarm.
-            </p>
 
+            {/* Auth Notice if not signed in */}
             {!user && (
-              <div className="p-4 bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/15 border border-amber-500/30 rounded-2xl max-w-md w-full text-center space-y-3 shadow-lg">
-                <div className="text-xs font-semibold text-amber-400 uppercase tracking-wider">🔒 Authentication Required</div>
-                <p className="text-xs text-slate-300">You must sign in or create an account to start chatting and managing isolated tasks.</p>
+              <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl max-w-md w-full text-center space-y-2.5 shadow-lg">
+                <div className="text-xs font-bold text-amber-400 uppercase tracking-wider">🔒 Authentication Required</div>
+                <p className="text-xs text-slate-300">Sign in to orchestrate multi-agent swarms with isolated memory.</p>
                 <button
                   onClick={onOpenAuth}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-semibold rounded-xl text-xs transition-all shadow-md"
+                  className="w-full py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold rounded-xl text-xs transition-all shadow-md"
                 >
                   Sign In / Create Account
                 </button>
               </div>
             )}
 
-            {/* GitHub & DevOps Featured Integration Banner */}
-            <div className="w-full max-w-4xl p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-indigo-950/30 to-slate-900/80 border border-purple-500/30 shadow-xl text-left relative overflow-hidden backdrop-blur-sm">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-start sm:items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-purple-500/15 border border-purple-500/40 flex items-center justify-center text-purple-400 flex-shrink-0 shadow-inner">
-                    <GitPullRequest className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-100">🐙 GitHub & DevOps Swarm Agent</h3>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                        Live Integration
-                      </span>
+            {/* ─── Compact 2-Column Live Integrations Bar ─── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-3xl text-left">
+              {/* GitHub Compact Card */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-purple-950/30 to-slate-900/80 border border-purple-500/30 shadow-md hover:border-purple-500/50 transition-all flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-purple-500/15 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                      <GitPullRequest className="w-4 h-4" />
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Inspect live repository trees, read codebase files, commit features, and open Pull Requests directly from chat.
-                    </p>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-200">GitHub Swarm</h4>
+                      <p className="text-[10px] text-slate-400">Repo trees, commits & PRs</p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => onOpenGitHub?.()}
+                    className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${
+                      hasGitHubToken
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-500/40'
+                        : 'bg-purple-600 hover:bg-purple-500 text-white border-transparent'
+                    }`}
+                  >
+                    {hasGitHubToken ? 'Active 🟢' : 'Connect'}
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => {
-                    if (onOpenGitHub) onOpenGitHub();
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 flex-shrink-0 ${
-                    hasGitHubToken
-                      ? 'bg-purple-500/20 border border-purple-500/40 text-purple-300 hover:bg-purple-500/30'
-                      : 'bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white hover:shadow-purple-500/25'
-                  }`}
-                >
-                  <GitPullRequest className="w-3.5 h-3.5" />
-                  {hasGitHubToken ? 'GitHub Token Active ⚙️' : 'Connect GitHub Token'}
-                </button>
+                <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-purple-500/20 text-[11px]">
+                  <button
+                    onClick={() => handleExampleClick("Show me the project structure of AkshitMaheshwari/portfolio")}
+                    className="px-2 py-0.5 rounded-md bg-slate-900/90 hover:bg-purple-950/60 border border-purple-500/30 text-purple-200 text-[10px] transition-all hover:border-purple-400 font-mono"
+                  >
+                    📁 Inspect Repo Tree
+                  </button>
+                  <button
+                    onClick={() => handleExampleClick("In my repository owner/repo, fix the typo in README.md and open a PR")}
+                    className="px-2 py-0.5 rounded-md bg-slate-900/90 hover:bg-purple-950/60 border border-purple-500/30 text-purple-200 text-[10px] transition-all hover:border-purple-400"
+                  >
+                    🚀 Open PR
+                  </button>
+                </div>
               </div>
 
-              {/* Quick suggestion pills */}
-              <div className="flex flex-wrap items-center gap-2 mt-3.5 pt-3 border-t border-purple-500/20 text-xs">
-                <span className="text-[11px] text-purple-300/80 font-medium">Try asking:</span>
-                <button
-                  onClick={() => handleExampleClick("Show me the project structure of AkshitMaheshwari/portfolio")}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-purple-500/30 text-purple-200 text-[11px] transition-all hover:border-purple-400 font-mono"
-                >
-                  📁 Show project structure of AkshitMaheshwari/portfolio
-                </button>
-                <button
-                  onClick={() => handleExampleClick("Inspect my portfolio repository and summarize its architecture")}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-purple-500/30 text-purple-200 text-[11px] transition-all hover:border-purple-400"
-                >
-                  🔍 Inspect my portfolio repository
-                </button>
-                <button
-                  onClick={() => handleExampleClick("In my repository owner/repo, fix the typo in README.md and open a PR")}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-purple-950/60 border border-purple-500/30 text-purple-200 text-[11px] transition-all hover:border-purple-400"
-                >
-                  🚀 Fix bug & open Pull Request
-                </button>
+              {/* Gmail Compact Card */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-rose-950/30 to-slate-900/80 border border-rose-500/30 shadow-md hover:border-rose-500/50 transition-all flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400">
+                      <Mail className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-200">Gmail Swarm</h4>
+                      <p className="text-[10px] text-slate-400">Triage, summarize & draft</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => onOpenGmail?.()}
+                    className={`text-[10px] font-bold px-2 py-1 rounded-lg border transition-all ${
+                      hasGmailToken
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+                        : 'bg-rose-600 hover:bg-rose-500 text-white border-transparent'
+                    }`}
+                  >
+                    {hasGmailToken ? 'Active 🟢' : 'Connect'}
+                  </button>
+                </div>
+                <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-rose-500/20 text-[11px]">
+                  <button
+                    onClick={() => handleExampleClick("Check my unread emails from today and summarize them")}
+                    className="px-2 py-0.5 rounded-md bg-slate-900/90 hover:bg-rose-950/60 border border-rose-500/30 text-rose-200 text-[10px] transition-all hover:border-rose-400 font-medium"
+                  >
+                    📬 Unread Emails
+                  </button>
+                  <button
+                    onClick={() => handleExampleClick("Search my emails for invoice from Stripe")}
+                    className="px-2 py-0.5 rounded-md bg-slate-900/90 hover:bg-rose-950/60 border border-rose-500/30 text-rose-200 text-[10px] transition-all hover:border-rose-400 font-medium"
+                  >
+                    🔍 Search Invoices
+                  </button>
+                </div>
               </div>
             </div>
 
-            {/* Gmail & Email Operations Featured Integration Banner */}
-            <div className="w-full max-w-4xl p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-rose-950/40 via-red-950/30 to-slate-900/80 border border-rose-500/30 shadow-xl text-left relative overflow-hidden backdrop-blur-sm mt-3">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div className="flex items-start sm:items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-rose-500/15 border border-rose-500/40 flex items-center justify-center text-rose-400 flex-shrink-0 shadow-inner">
-                    <Mail className="w-5 h-5" />
+            {/* ─── Curated 4-Directive Quick Grid ─── */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 w-full max-w-4xl text-left">
+              <button
+                onClick={() => handleExampleClick("Create a 3-year go-to-market strategy, competitive analysis, and pitch deck for an AI startup.")}
+                className="p-3 bg-slate-900/70 border border-slate-800/80 hover:border-amber-500/40 rounded-xl transition-all hover:bg-slate-850 group flex flex-col justify-between"
+              >
+                <div>
+                  <div className="font-semibold text-amber-400 text-xs mb-0.5 flex items-center gap-1.5">
+                    🏢 Business Strategy
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-bold text-slate-100">📬 Gmail & Inbox Swarm Agent</h3>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                        Live Integration
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      Triage unread emails, summarize conversation threads, draft tailored replies, and send emails via Gmail.
-                    </p>
-                  </div>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                    GTM plans, SWOT matrix, and 9-slide investor pitch decks.
+                  </p>
                 </div>
-
-                <button
-                  onClick={() => {
-                    if (onOpenGmail) onOpenGmail();
-                  }}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-md flex items-center gap-1.5 flex-shrink-0 ${
-                    hasGmailToken
-                      ? 'bg-rose-500/20 border border-rose-500/40 text-rose-300 hover:bg-rose-500/30'
-                      : 'bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white hover:shadow-rose-500/25'
-                  }`}
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  {hasGmailToken ? 'Gmail Connected 🟢' : 'Connect Gmail Account'}
-                </button>
-              </div>
-
-              {/* Quick suggestion pills */}
-              <div className="flex flex-wrap items-center gap-2 mt-3.5 pt-3 border-t border-rose-500/20 text-xs">
-                <span className="text-[11px] text-rose-300/80 font-medium">Try asking:</span>
-                <button
-                  onClick={() => handleExampleClick("Check my unread emails from today and summarize them")}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-rose-950/60 border border-rose-500/30 text-rose-200 text-[11px] transition-all hover:border-rose-400 font-medium"
-                >
-                  📬 Check unread emails
-                </button>
-                <button
-                  onClick={() => handleExampleClick("Search my emails for invoice from Stripe")}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-rose-950/60 border border-rose-500/30 text-rose-200 text-[11px] transition-all hover:border-rose-400 font-medium"
-                >
-                  🔍 Search inbox for invoices
-                </button>
-                <button
-                  onClick={() => handleExampleClick("Draft a professional follow-up email to Alex about the project meeting")}
-                  className="px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-rose-950/60 border border-rose-500/30 text-rose-200 text-[11px] transition-all hover:border-rose-400 font-medium"
-                >
-                  ✍️ Draft reply to email
-                </button>
-              </div>
-            </div>
-
-            {/* Starter Mission Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full max-w-4xl mt-3">
-              <button
-                onClick={() => handleExampleClick("Create a 3-year go-to-market strategy, competitive analysis, and pitch deck for an AI analytics startup.")}
-                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
-              >
-                <div className="font-semibold text-amber-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
-                  🏢 Business Strategy
+                <div className="text-[10px] text-slate-500 group-hover:text-amber-400 transition-colors pt-2 flex items-center gap-1">
+                  <span>Deploy Swarm</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
                 </div>
-                <div className="text-[11px] text-slate-400">GTM plans, SWOT matrix, and 9-slide investor pitch decks.</div>
-              </button>
-
-              <button
-                onClick={() => handleExampleClick("Review this SaaS service agreement for liability risks and draft a GDPR compliance checklist.")}
-                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-violet-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
-              >
-                <div className="font-semibold text-violet-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
-                  ⚖️ Legal & Compliance
-                </div>
-                <div className="text-[11px] text-slate-400">Contract clause reviews, ToS drafting, and regulatory checklists.</div>
-              </button>
-
-              <button
-                onClick={() => handleExampleClick("Write a 4-email personalized cold outreach sequence targeting enterprise CTOs with objection handling.")}
-                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-rose-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
-              >
-                <div className="font-semibold text-rose-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
-                  📧 Sales & Outreach
-                </div>
-                <div className="text-[11px] text-slate-400">Lead profiling, high-converting copy, and follow-up cadences.</div>
-              </button>
-
-              <button
-                onClick={() => handleExampleClick("Create a complete brand identity guide with hex palettes, typography, and logo concepts for a modern fintech app.")}
-                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-fuchsia-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
-              >
-                <div className="font-semibold text-fuchsia-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
-                  🎨 Brand & Design
-                </div>
-                <div className="text-[11px] text-slate-400">Design systems, logo concepts, and visual guidelines.</div>
-              </button>
-
-              <button
-                onClick={() => handleExampleClick("Search my uploaded documents and summarize the key clauses and SLA commitments.")}
-                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-sky-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
-              >
-                <div className="font-semibold text-sky-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
-                  📄 Document RAG Q&A
-                </div>
-                <div className="text-[11px] text-slate-400">Instant answers with source citations from your uploaded files.</div>
               </button>
 
               <button
                 onClick={() => handleExampleClick("Build an interactive financial dashboard using Next.js, Tailwind CSS, and Recharts.")}
-                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-purple-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+                className="p-3 bg-slate-900/70 border border-slate-800/80 hover:border-purple-500/40 rounded-xl transition-all hover:bg-slate-850 group flex flex-col justify-between"
               >
-                <div className="font-semibold text-purple-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
-                  💻 Software Engineering
+                <div>
+                  <div className="font-semibold text-purple-400 text-xs mb-0.5 flex items-center gap-1.5">
+                    💻 Code Engineering
+                  </div>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                    Full-stack web apps, algorithms, and automated PRs.
+                  </p>
                 </div>
-                <div className="text-[11px] text-slate-400">Full-stack web applications, Python algorithms, and debugging.</div>
+                <div className="text-[10px] text-slate-500 group-hover:text-purple-400 transition-colors pt-2 flex items-center gap-1">
+                  <span>Deploy Swarm</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </button>
 
               <button
-                onClick={() => handleExampleClick("Analyze NVDA and MSFT fundamentals, technical indicators (RSI, MACD), and recent earnings sentiment.")}
-                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+                onClick={() => handleExampleClick("Analyze NVDA and MSFT fundamentals, technical indicators (RSI, MACD), and sentiment.")}
+                className="p-3 bg-slate-900/70 border border-slate-800/80 hover:border-cyan-500/40 rounded-xl transition-all hover:bg-slate-850 group flex flex-col justify-between"
               >
-                <div className="font-semibold text-amber-300 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
-                  📈 Financial Analysis
+                <div>
+                  <div className="font-semibold text-cyan-400 text-xs mb-0.5 flex items-center gap-1.5">
+                    📈 Financial Intel
+                  </div>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                    OHLCV market analytics, technical charts, and metrics.
+                  </p>
                 </div>
-                <div className="text-[11px] text-slate-400">Live OHLCV market metrics, technical analysis, and reports.</div>
+                <div className="text-[10px] text-slate-500 group-hover:text-cyan-400 transition-colors pt-2 flex items-center gap-1">
+                  <span>Deploy Swarm</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </button>
 
               <button
-                onClick={() => handleExampleClick("Perform exploratory data analysis on our customer metrics, calculate correlations, and visualize trends.")}
-                className="p-3.5 bg-slate-900/80 border border-slate-800 hover:border-cyan-500/50 rounded-xl text-left transition-all hover:bg-slate-800/60 group"
+                onClick={() => handleExampleClick("Search my uploaded documents and summarize key clauses and SLA commitments.")}
+                className="p-3 bg-slate-900/70 border border-slate-800/80 hover:border-sky-500/40 rounded-xl transition-all hover:bg-slate-850 group flex flex-col justify-between"
               >
-                <div className="font-semibold text-cyan-400 text-xs mb-1 group-hover:translate-x-0.5 transition-transform flex items-center gap-1.5">
-                  📊 Data Analytics
+                <div>
+                  <div className="font-semibold text-sky-400 text-xs mb-0.5 flex items-center gap-1.5">
+                    📄 Document RAG
+                  </div>
+                  <p className="text-[11px] text-slate-400 line-clamp-2 leading-relaxed">
+                    Instant answers with citations from private uploaded files.
+                  </p>
                 </div>
-                <div className="text-[11px] text-slate-400">Statistical data profiling, KPI calculations, and chart generation.</div>
+                <div className="text-[10px] text-slate-500 group-hover:text-sky-400 transition-colors pt-2 flex items-center gap-1">
+                  <span>Deploy Swarm</span>
+                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                </div>
               </button>
             </div>
+
           </div>
         ) : (
           messages.map((msg) => {
@@ -482,7 +441,6 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
             const currentTab = activeTabs[msg.id] || 'report';
             const logsOpen = showLogs[msg.id] || false;
 
-            // Extract chart data if present in events
             const chartEvent = msg.events?.find(e => e.event === 'charts_json');
             let chartsData = null;
             if (chartEvent && chartEvent.data) {
@@ -496,21 +454,20 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
             return (
               <div
                 key={msg.id}
-                className={`flex gap-4 max-w-4xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex gap-3 max-w-4xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {msg.role !== 'user' && (
-                  <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0 mt-1">
-                    <Bot className="w-5 h-5" />
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0 mt-1 shadow-sm">
+                    <Bot className="w-4 h-4" />
                   </div>
                 )}
 
                 <div className={`flex-1 max-w-3xl ${msg.role === 'user' ? 'text-right' : ''}`}>
-                  {/* Message Bubble */}
                   <div
-                    className={`rounded-2xl p-5 border text-sm leading-relaxed ${
+                    className={`rounded-2xl p-4 md:p-5 border text-sm leading-relaxed ${
                       msg.role === 'user'
-                        ? 'bg-amber-500/15 border-amber-500/30 text-slate-100 ml-auto max-w-lg text-left'
-                        : 'bg-[var(--bg-card)] border-slate-800 text-slate-200'
+                        ? 'bg-amber-500/15 border-amber-500/30 text-slate-100 ml-auto max-w-lg text-left shadow-sm'
+                        : 'bg-slate-900/90 border-slate-800 text-slate-200 shadow-md'
                     }`}
                   >
                     {msg.role === 'thinking' ? (
@@ -522,15 +479,14 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                       <p className="text-sm leading-relaxed">{msg.content}</p>
                     ) : htmlContent ? (
                       <div>
-                        {/* Tab Controls */}
                         <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setActiveTabs({ ...activeTabs, [msg.id]: 'report' })}
                               className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                                 currentTab === 'report'
-                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
-                                  : 'text-slate-400 hover:text-slate-200'
+                                    ? 'bg-amber-500/20 text-amber-400 border border-amber-500/40'
+                                    : 'text-slate-400 hover:text-slate-200'
                               }`}
                             >
                               <Code className="w-3.5 h-3.5" />
@@ -557,7 +513,6 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                           </button>
                         </div>
 
-                        {/* Content Body */}
                         {currentTab === 'report' ? (
                           <MarkdownContent content={msg.content || ''} />
                         ) : (
@@ -575,7 +530,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                       <MarkdownContent content={msg.content || ''} />
                     )}
 
-                    {/* Chart Visualization if chartsData present */}
+                    {/* Chart Visualization */}
                     {chartsData && (
                       <div className="mt-4 pt-4 border-t border-slate-800">
                         <h4 className="text-xs font-semibold text-amber-400 mb-3 flex items-center gap-2">
@@ -614,7 +569,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                     )}
                   </div>
 
-                  {/* Agent Execution Logs Collapsible */}
+                  {/* Agent Execution Logs */}
                   {msg.events && msg.events.length > 0 && (
                     <div className="mt-2 text-left">
                       <button
@@ -653,8 +608,8 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                 </div>
 
                 {msg.role === 'user' && (
-                  <div className="w-9 h-9 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-200 flex-shrink-0 mt-1">
-                    <User className="w-5 h-5" />
+                  <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-200 flex-shrink-0 mt-1">
+                    <User className="w-4 h-4" />
                   </div>
                 )}
               </div>
@@ -664,97 +619,73 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
         <div ref={bottomRef} />
       </div>
 
-      {/* Input Box Area */}
-      <div className="p-4 border-t border-slate-800 bg-[var(--bg-surface)]">
-        {!user ? (
-          <div className="max-w-4xl mx-auto flex items-center justify-between p-3 bg-slate-900/90 border border-amber-500/30 rounded-2xl">
-            <span className="text-xs text-slate-300 font-medium pl-2">🔒 Please sign in to chat and run agent tasks.</span>
-            <button
-              onClick={onOpenAuth}
-              className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-semibold text-xs rounded-xl shadow transition-all hover:brightness-110"
-            >
-              Sign In to Chat
-            </button>
-          </div>
-        ) : (
-          <div className="max-w-4xl mx-auto space-y-2">
-            {/* Quick Agent Tool Badges */}
-            <div className="flex items-center justify-between px-1 text-xs">
-              <div className="flex items-center gap-2 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => onOpenGitHub?.()}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
-                    hasGitHubToken
-                      ? 'bg-purple-500/10 border-purple-500/30 text-purple-300 hover:bg-purple-500/20'
-                      : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-purple-300 hover:border-purple-500/30'
-                  }`}
-                >
-                  <GitPullRequest className="w-3 h-3 text-purple-400" />
-                  <span>{hasGitHubToken ? 'GitHub Active' : 'Connect GitHub'}</span>
-                </button>
+      {/* ─── Sleek Modern Floating Prompt Input Bar ─── */}
+      <div className="p-3 md:p-4 bg-gradient-to-t from-[#06080e] via-[#06080e]/90 to-transparent">
+        <div className="max-w-4xl mx-auto space-y-2">
+          {/* Quick Filter / Tool Shortcuts Strip */}
+          <div className="flex items-center justify-between px-1 text-[11px]">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setPrompt('Check my unread emails from today and summarize them')}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all text-[11px]"
+              >
+                <span>📬 Check Inbox</span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => onOpenGmail?.()}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all ${
-                    hasGmailToken
-                      ? 'bg-rose-500/10 border-rose-500/30 text-rose-300 hover:bg-rose-500/20'
-                      : 'bg-slate-900/80 border-slate-800 text-slate-400 hover:text-rose-300 hover:border-rose-500/30'
-                  }`}
-                >
-                  <Mail className="w-3 h-3 text-rose-400" />
-                  <span>{hasGmailToken ? 'Gmail Active' : 'Connect Gmail'}</span>
-                </button>
+              <button
+                type="button"
+                onClick={() => setPrompt('Show me the project structure of ')}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all text-[11px]"
+              >
+                <span>📁 Repo Tree</span>
+              </button>
 
-                <button
-                  type="button"
-                  onClick={() => setPrompt('Check my unread emails from today and summarize them')}
-                  className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all"
-                >
-                  <span>📬 Check Inbox</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setPrompt('Show me the project structure of ')}
-                  className="hidden md:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-medium bg-slate-900/60 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all"
-                >
-                  <span>📁 Repo Tree</span>
-                </button>
-              </div>
-
-              <span className="text-[10px] text-slate-500 font-mono hidden lg:inline">
-                Swarm Core · Live Integrations
-              </span>
+              <button
+                type="button"
+                onClick={() => setPrompt('Search my uploaded documents and ')}
+                className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-slate-200 transition-all text-[11px]"
+              >
+                <span>📑 Search Docs</span>
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="relative flex items-end gap-3">
-              <div className="flex-1 relative">
-                <textarea
-                  ref={textareaRef}
-                  value={prompt}
-                  onChange={handlePromptChange}
-                  onKeyDown={handleKeyDown}
-                  disabled={loading}
-                  rows={1}
-                  placeholder="Ask anything — 'Check unread emails', 'Show repo structure', code, research... (Shift+Enter for newline)"
-                  className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-5 pr-5 py-3.5 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500/50 transition-all resize-none overflow-hidden leading-relaxed"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={loading || !prompt.trim()}
-                className="flex-shrink-0 p-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 rounded-xl disabled:opacity-40 transition-all mb-0.5 shadow-md"
-              >
-                <Sparkles className="w-4 h-4" />
-              </button>
-            </form>
+            <span className="text-[10px] text-slate-500 font-mono hidden md:inline">
+              Swarm Core · Multi-Agent
+            </span>
           </div>
-        )}
-        <p className="text-center text-[10px] text-slate-600 mt-2">
-          Press Enter to send · Shift+Enter for newline · HiveMind AI processes your request with multiple specialized agents
-        </p>
+
+          {/* Textarea Input Container */}
+          <form
+            onSubmit={handleSubmit}
+            className="relative flex items-end gap-2 bg-slate-900/90 border border-slate-800 focus-within:border-amber-500/50 rounded-2xl p-2 transition-all shadow-xl"
+          >
+            <div className="flex-1">
+              <textarea
+                ref={textareaRef}
+                value={prompt}
+                onChange={handlePromptChange}
+                onKeyDown={handleKeyDown}
+                disabled={loading}
+                rows={1}
+                placeholder="Ask the swarm anything — 'Check unread emails', 'Inspect repo', code, research..."
+                className="w-full bg-transparent border-0 pl-3 pr-2 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none resize-none overflow-hidden leading-relaxed"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={loading || !prompt.trim()}
+              className="flex-shrink-0 p-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold rounded-xl disabled:opacity-40 transition-all shadow-md"
+              title="Send Prompt (Enter)"
+            >
+              <Sparkles className="w-4 h-4" />
+            </button>
+          </form>
+
+          <p className="text-center text-[10px] text-slate-500">
+            Press Enter to send · Shift+Enter for new line · HiveMind AI Swarm
+          </p>
+        </div>
       </div>
     </div>
   );
