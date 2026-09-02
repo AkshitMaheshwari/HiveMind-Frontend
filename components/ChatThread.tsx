@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import {
   Bot, User, Code, Eye, ExternalLink, ChevronDown, ChevronRight,
   Sparkles, Terminal, Copy, Check as CheckIcon, GitPullRequest, Mail,
-  ArrowUpRight, Zap, TrendingUp, FileText, ArrowRight
+  ArrowRight
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
@@ -476,7 +476,6 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
 
           </div>
         ) : (
-          messages.map((msg) => {
           messages.map((msg, index) => {
             const htmlContent = msg.content ? extractHtml(msg.content) : null;
             const currentTab = activeTabs[msg.id] || 'report';
@@ -494,7 +493,6 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
 
             return (
               <div
-                key={msg.id}
                 key={`${msg.id || 'msg'}-${index}`}
                 className={`flex gap-3 max-w-4xl mx-auto ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
