@@ -1,5 +1,7 @@
 'use client';
 
+import { apiKeyStorage } from '@/lib/api-key-storage';
+
 import React, { useState, useEffect } from 'react';
 import {
   Brain, Zap, Cpu, Key, Check, Eye, EyeOff, ExternalLink,
@@ -133,9 +135,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     }
   }, [isOpen, initialTab]);
 
-  // Persist API keys in localStorage
+  // Keep API keys for the current browser tab.
   useEffect(() => {
-    const saved = localStorage.getItem('hivemind_api_keys');
+    const saved = apiKeyStorage.getItem('hivemind_api_keys');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
@@ -200,7 +202,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         github: currentApiKey.trim(),
         github_token: currentApiKey.trim(),
       };
-      localStorage.setItem('hivemind_api_keys', JSON.stringify(updatedKeys));
+      apiKeyStorage.setItem('hivemind_api_keys', JSON.stringify(updatedKeys));
       setGithubSaved(true);
       setTimeout(() => setGithubSaved(false), 3000);
       return;
@@ -212,7 +214,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         gmail: currentApiKey.trim(),
         gmail_token: currentApiKey.trim(),
       };
-      localStorage.setItem('hivemind_api_keys', JSON.stringify(updatedKeys));
+      apiKeyStorage.setItem('hivemind_api_keys', JSON.stringify(updatedKeys));
       setGmailSaved(true);
       setTimeout(() => setGmailSaved(false), 3000);
       return;
@@ -227,7 +229,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
     };
     // Persist API keys
     const updatedKeys = { ...apiKeys, [activeProvider]: currentApiKey.trim() };
-    localStorage.setItem('hivemind_api_keys', JSON.stringify(updatedKeys));
+    apiKeyStorage.setItem('hivemind_api_keys', JSON.stringify(updatedKeys));
     onSave(config);
     onClose();
   };
@@ -247,7 +249,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
             </div>
             <div>
               <h2 className="text-sm font-bold text-slate-100">LLM Provider & Integrations</h2>
-              <p className="text-xs text-slate-400">Bring Your Own Key (BYOK) — Keys stored securely in local browser storage</p>
+              <p className="text-xs text-slate-400">Bring Your Own Key (BYOK) — Keys are kept for this browser tab and sent to your backend for requests.</p>
             </div>
           </div>
           <button
@@ -520,9 +522,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-t border-slate-800 bg-slate-900/50 flex-shrink-0">
           <span className="text-[11px] text-slate-500">
             {activeProvider === 'github'
-              ? (githubSaved ? '✅ GitHub Token Saved!' : 'Token saved locally in browser')
+              ? (githubSaved ? '✅ GitHub Token Saved!' : 'Token saved for this browser tab')
               : activeProvider === 'gmail'
-              ? (gmailSaved ? '✅ Gmail Token Saved!' : 'Token saved locally in browser')
+              ? (gmailSaved ? '✅ Gmail Token Saved!' : 'Token saved for this browser tab')
               : (currentApiKey ? '✅ Key loaded' : '⚠️ Key required to run')}
           </span>
           <div className="flex items-center gap-2">

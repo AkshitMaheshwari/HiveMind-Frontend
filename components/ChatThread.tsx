@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -8,9 +8,8 @@ import {
   Sparkles, Terminal, Copy, Check as CheckIcon, GitPullRequest, Mail,
   ArrowRight
 } from 'lucide-react';
-import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
-} from 'recharts';
+import dynamic from 'next/dynamic';
+const AnalyticsCharts = dynamic(() => import('./AnalyticsCharts'), { ssr: false });
 
 interface ChatMessage {
   id: string;
@@ -21,6 +20,14 @@ interface ChatMessage {
 }
 
 interface ChatThreadProps {
+  mode: 'fast' | 'balanced' | 'thorough';
+  onModeChange: (mode: 'fast' | 'balanced' | 'thorough') => void;
+  department: string;
+  onDepartmentChange: (department: string) => void;
+  activity: string;
+  onStop: () => void;
+  cancelling: boolean;
+  onRetry?: () => void;
   messages: ChatMessage[];
   onSubmitPrompt: (prompt: string) => void;
   loading: boolean;
@@ -33,6 +40,13 @@ interface ChatThreadProps {
 }
 
 // ─── Code block with copy button ─────────────────────────────────────────────
+function downloadText(content: string, filename: string) {
+  const url = URL.createObjectURL(new Blob([content], { type: 'text/plain;charset=utf-8' }));
+  const link = document.createElement('a');
+  link.href = url; link.download = filename; link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 const CodeBlock: React.FC<{ children: string; language?: string }> = ({ children, language }) => {
   const [copied, setCopied] = useState(false);
   const copy = () => {
@@ -54,6 +68,7 @@ const CodeBlock: React.FC<{ children: string; language?: string }> = ({ children
           {copied ? 'Copied!' : 'Copy'}
         </button>
       </div>
+      <button type="button" onClick={() => downloadText(children, `solution.${({ python: 'py', javascript: 'js', typescript: 'ts', html: 'html', css: 'css', json: 'json' } as Record<string, string>)[language || ''] || 'txt'}`)} className="absolute right-24 top-2 text-[11px] text-slate-400 hover:text-slate-200">Download</button>
       <pre className="overflow-x-auto p-4 text-xs leading-relaxed text-slate-300 font-mono">
         <code>{children}</code>
       </pre>
@@ -85,7 +100,7 @@ function cleanMarkdownText(content: string): string {
   return content;
 }
 
-const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
+const MarkdownContent = memo(function MarkdownContent({ content }: { content: string }) { return (
   <ReactMarkdown
     remarkPlugins={[remarkGfm]}
     components={{
@@ -105,17 +120,12 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
         <p className="text-sm leading-relaxed text-slate-300 mb-2 last:mb-0">{children}</p>
       ),
       ul: ({ children }) => (
-        <ul className="my-2 space-y-1 pl-4">{children}</ul>
+        <ul className="my-2 space-y-1 pl-4 list-disc">{children}</ul>
       ),
       ol: ({ children }) => (
         <ol className="my-2 space-y-1 pl-4 list-decimal">{children}</ol>
       ),
-      li: ({ children, ...props }: any) => (
-        <li className="text-sm text-slate-300 leading-relaxed list-none flex gap-2">
-          <span className="text-amber-500 mt-1.5 flex-shrink-0 select-none">•</span>
-          <span>{children}</span>
-        </li>
-      ),
+      li: ({ children }) => <li className="text-sm text-slate-300 leading-relaxed">{children}</li>,
       code: ({ node, className, children, ...props }: any) => {
         const match = /language-(\w+)/.exec(className || '');
         const isInline = !match && typeof children === 'string' && !children.includes('\n');
@@ -161,10 +171,11 @@ const MarkdownContent: React.FC<{ content: string }> = ({ content }) => (
   >
     {cleanMarkdownText(content)}
   </ReactMarkdown>
-);
+); });
 
 // ─── Main ChatThread Component ────────────────────────────────────────────────
 export const ChatThread: React.FC<ChatThreadProps> = ({
+  mode, onModeChange, department, onDepartmentChange, activity, onStop, cancelling, onRetry,
   messages,
   onSubmitPrompt,
   loading,
@@ -179,10 +190,20 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
   const [activeTabs, setActiveTabs] = useState<Record<string, 'report' | 'preview'>>({});
   const [showLogs, setShowLogs] = useState<Record<string, boolean>>({});
   const bottomRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const followOutput = useRef(true);
+  const [fullscreenHtml, setFullscreenHtml] = useState<string | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!loading) return;
+    const started = Date.now();
+    const timer = setInterval(() => setElapsed(Math.floor((Date.now() - started) / 1000)), 1000);
+    return () => clearInterval(timer);
+  }, [loading]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (followOutput.current) bottomRef.current?.scrollIntoView({ behavior: 'instant' });
   }, [messages]);
 
   const handlePromptChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -254,39 +275,24 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
     return null;
   };
 
-  const openFullscreen = (html: string) => {
-    const win = window.open('', '_blank');
-    if (win) {
-      if (html.toLowerCase().includes('<!doctype html') || html.toLowerCase().includes('<html')) {
-        win.document.open();
-        win.document.write(html);
-        win.document.close();
-      } else {
-        win.document.open();
-        win.document.write(`<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Preview</title>
-</head>
-<body style="margin:0;padding:0;">
-  ${html}
-</body>
-</html>`);
-        win.document.close();
-      }
-    }
-  };
+  const openFullscreen = (html: string) => setFullscreenHtml(html);
 
   const handleExampleClick = (p: string) => {
     if (!user) { onOpenAuth(); } else { onSubmitPrompt(p); }
   };
 
   return (
-    <div className="flex-1 flex flex-col h-[calc(100vh-3.5rem)] bg-[#070a12] relative overflow-hidden">
+    <div className="flex-1 min-w-0 min-h-0 flex flex-col h-full bg-[#070a12] relative overflow-hidden">
+      {fullscreenHtml !== null && <div role="dialog" aria-modal="true" aria-label="Full screen preview" className="fixed inset-0 z-[100] bg-slate-950 p-4 flex flex-col gap-3">
+        <button type="button" onClick={() => setFullscreenHtml(null)} className="self-end rounded-lg bg-slate-800 px-4 py-2 text-sm">Close preview</button>
+        <iframe title="Full screen preview" srcDoc={fullscreenHtml} sandbox="allow-scripts" className="flex-1 w-full border-0 bg-white rounded-xl" />
+      </div>}
+
       {/* ─── Messages & Content Scroll Area ─── */}
-      <div className="flex-1 overflow-y-auto px-4 py-6 md:px-8 space-y-6">
+      <div ref={scrollRef} onScroll={() => {
+        const element = scrollRef.current;
+        if (element) followOutput.current = element.scrollHeight - element.scrollTop - element.clientHeight < 100;
+      }} className="flex-1 min-w-0 overflow-y-auto px-4 py-6 md:px-8 space-y-6">
         {messages.length === 0 ? (
           <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center space-y-6 py-4">
             
@@ -481,15 +487,12 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
             const currentTab = activeTabs[msg.id] || 'report';
             const logsOpen = showLogs[msg.id] || false;
 
-            const chartEvent = msg.events?.find(e => e.event === 'charts_json');
-            let chartsData = null;
-            if (chartEvent && chartEvent.data) {
+            const chartsData = (msg.events || []).filter(e => e.event === 'charts_json').flatMap(event => {
               try {
-                chartsData = JSON.parse(chartEvent.data);
-              } catch (e) {
-                console.error("Failed to parse chart data", e);
-              }
-            }
+                const parsed = JSON.parse(event.data);
+                return Array.isArray(parsed) ? parsed : [];
+              } catch { return []; }
+            });
 
             return (
               <div
@@ -502,7 +505,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                   </div>
                 )}
 
-                <div className={`flex-1 max-w-3xl ${msg.role === 'user' ? 'text-right' : ''}`}>
+                <div className={`flex-1 min-w-0 max-w-3xl ${msg.role === 'user' ? 'text-right' : ''}`}>
                   <div
                     className={`rounded-2xl p-4 md:p-5 border text-sm leading-relaxed ${
                       msg.role === 'user'
@@ -519,7 +522,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                       <p className="text-sm leading-relaxed">{msg.content}</p>
                     ) : htmlContent ? (
                       <div>
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3 mb-4">
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => setActiveTabs({ ...activeTabs, [msg.id]: 'report' })}
@@ -561,7 +564,7 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                               srcDoc={htmlContent}
                               title="preview"
                               className="w-full h-[500px] border-0"
-                              sandbox="allow-scripts allow-same-origin"
+                              sandbox="allow-scripts"
                             />
                           </div>
                         )}
@@ -570,43 +573,12 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                       <MarkdownContent content={msg.content || ''} />
                     )}
 
-                    {/* Chart Visualization */}
-                    {chartsData && (
-                      <div className="mt-4 pt-4 border-t border-slate-800">
-                        <h4 className="text-xs font-semibold text-amber-400 mb-3 flex items-center gap-2">
-                          📊 Generated Analytics Chart
-                        </h4>
-                        <div className="h-64 w-full bg-slate-900/50 p-2 rounded-xl border border-slate-800/80">
-                          <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartsData}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-                              <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} />
-                              <YAxis stroke="#94a3b8" fontSize={11} />
-                              <Tooltip
-                                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', color: '#f8fafc', fontSize: '12px' }}
-                              />
-                              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '8px' }} />
-                              {Object.keys(chartsData[0] || {})
-                                .filter(key => key !== 'name')
-                                .map((key, index) => {
-                                  const colors = ['#f59e0b', '#06b6d4', '#10b981', '#ec4899', '#8b5cf6'];
-                                  return (
-                                    <Line
-                                      key={key}
-                                      type="monotone"
-                                      dataKey={key}
-                                      stroke={colors[index % colors.length]}
-                                      strokeWidth={2}
-                                      dot={{ fill: colors[index % colors.length], r: 3 }}
-                                      activeDot={{ r: 5 }}
-                                    />
-                                  );
-                                })}
-                            </LineChart>
-                          </ResponsiveContainer>
-                        </div>
-                      </div>
+                    {chartsData.length > 0 && <AnalyticsCharts charts={chartsData} />}
+                    {msg.role === 'assistant' && !msg.streaming && msg.content && (
+                      <button type="button" onClick={() => downloadText(msg.content || '', 'hivemind-response.md')}
+                        className="mt-3 text-xs text-slate-400 hover:text-amber-400">Download response</button>
                     )}
+
                   </div>
 
                   {/* Agent Execution Logs */}
@@ -662,6 +634,27 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
       {/* ─── Sleek Modern Floating Prompt Input Bar ─── */}
       <div className="p-3 md:p-4 bg-gradient-to-t from-[#06080e] via-[#06080e]/90 to-transparent">
         <div className="max-w-4xl mx-auto space-y-2">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <label className="text-slate-400" htmlFor="response-mode">Response</label>
+            <select id="response-mode" value={mode} disabled={loading}
+              onChange={event => onModeChange(event.target.value as 'fast' | 'balanced' | 'thorough')}
+              className="rounded-lg bg-slate-900 border border-slate-700 px-2 py-1.5 text-slate-200">
+              <option value="fast">Fast</option><option value="balanced">Balanced</option><option value="thorough">Thorough</option>
+            </select>
+            <label className="text-slate-400 ml-1" htmlFor="department">Team</label>
+            <select id="department" value={department} disabled={loading} onChange={event => onDepartmentChange(event.target.value)}
+              className="rounded-lg bg-slate-900 border border-slate-700 px-2 py-1.5 text-slate-200 max-w-40">
+              <option value="">Auto-select</option>
+              {['research', 'content', 'code', 'document', 'financial', 'analytics', 'strategy', 'legal', 'sales', 'design'].map(value =>
+                <option key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</option>)}
+            </select>
+            <span className="text-slate-500 hidden lg:inline">{mode === 'fast' ? 'Fewer optional reviews' : mode === 'thorough' ? 'More review where useful' : 'A balance of speed and review'}</span>
+          </div>
+          {(activity || loading || onRetry) && <div role="status" aria-live="polite" className="flex items-center justify-between gap-3 text-xs text-amber-300 px-1 py-1">
+            <span className="truncate">{activity || (onRetry ? 'The request could not finish.' : 'Working...')}{loading ? ` · ${elapsed}s` : ''}</span>
+            {onRetry && !loading && <button type="button" onClick={onRetry} className="underline shrink-0">Retry request</button>}
+          </div>}
+
           {/* Quick Filter / Tool Shortcuts Strip */}
           <div className="flex items-center justify-between px-1 text-[11px]">
             <div className="flex items-center gap-1.5 flex-wrap">
@@ -706,20 +699,20 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
                 value={prompt}
                 onChange={handlePromptChange}
                 onKeyDown={handleKeyDown}
-                disabled={loading}
                 rows={1}
+                aria-label="Message"
                 placeholder="Ask the swarm anything — 'Check unread emails', 'Inspect repo', code, research..."
                 className="w-full bg-transparent border-0 pl-3 pr-2 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none resize-none overflow-hidden leading-relaxed"
               />
             </div>
-            <button
-              type="submit"
-              disabled={loading || !prompt.trim()}
-              className="flex-shrink-0 p-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-bold rounded-xl disabled:opacity-40 transition-all shadow-md"
-              title="Send Prompt (Enter)"
-            >
-              <Sparkles className="w-4 h-4" />
-            </button>
+            {loading ? <button type="button" onClick={onStop} disabled={cancelling}
+              className="shrink-0 px-3 py-2.5 rounded-xl bg-slate-800 text-slate-100 text-sm disabled:opacity-50"
+              aria-label="Stop task">{cancelling ? 'Stopping...' : 'Stop'}</button> :
+              <button type="submit" disabled={!prompt.trim()} aria-label="Send message"
+                className="shrink-0 p-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl disabled:opacity-40">
+                <Sparkles className="w-4 h-4" />
+              </button>}
+
           </form>
 
           <p className="text-center text-[10px] text-slate-500">

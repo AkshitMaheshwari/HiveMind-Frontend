@@ -1,5 +1,7 @@
 'use client';
 
+import { apiKeyStorage } from '@/lib/api-key-storage';
+
 import React, { useState, useEffect } from 'react';
 import {
   Sparkles, Code, Brain, ChevronRight, Zap, Shield, FileSearch,
@@ -68,7 +70,7 @@ export default function Dashboard() {
 
   // Load saved model config
   useEffect(() => {
-    const savedKeys = localStorage.getItem('hivemind_api_keys');
+    const savedKeys = apiKeyStorage.getItem('hivemind_api_keys');
     const savedModel = localStorage.getItem('hivemind_selected_model');
     const savedProvider = localStorage.getItem('hivemind_selected_provider');
     const savedModelName = localStorage.getItem('hivemind_selected_model_name');
@@ -117,9 +119,9 @@ export default function Dashboard() {
     localStorage.setItem('hivemind_selected_model', config.modelId);
     localStorage.setItem('hivemind_selected_provider', config.provider);
     localStorage.setItem('hivemind_selected_model_name', config.modelName);
-    const existingKeys = JSON.parse(localStorage.getItem('hivemind_api_keys') || '{}');
+    const existingKeys = JSON.parse(apiKeyStorage.getItem('hivemind_api_keys') || '{}');
     existingKeys[config.provider] = config.apiKey;
-    localStorage.setItem('hivemind_api_keys', JSON.stringify(existingKeys));
+    apiKeyStorage.setItem('hivemind_api_keys', JSON.stringify(existingKeys));
     setHasGitHubToken(Boolean(existingKeys.github || existingKeys.github_token));
     setHasGmailToken(Boolean(existingKeys.gmail || existingKeys.gmail_token));
   };

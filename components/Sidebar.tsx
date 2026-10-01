@@ -152,7 +152,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      <aside className="w-64 h-[calc(100vh-4rem)] bg-[var(--bg-surface)] border-r border-slate-800 flex flex-col flex-shrink-0">
+      <aside className="w-64 h-full bg-[var(--bg-surface)] border-r border-slate-800 flex flex-col flex-shrink-0">
         {/* New Chat Button */}
         <div className="p-4 border-b border-[var(--border-subtle)]">
           <button

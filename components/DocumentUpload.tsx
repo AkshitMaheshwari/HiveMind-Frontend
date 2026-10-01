@@ -1,5 +1,7 @@
 'use client';
 
+import { apiKeyStorage } from '@/lib/api-key-storage';
+
 import React, { useState, useRef, useCallback } from 'react';
 import {
   Upload, FileText, Sheet, File, CheckCircle2,
@@ -17,6 +19,7 @@ interface UploadedFile {
   chunks?: number;
   filesCount?: number;
   error?: string;
+  notice?: string;
 }
 
 interface DocumentUploadProps {
@@ -69,7 +72,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ user }) => {
       setFiles(prev =>
         prev.map(f =>
           f.id === fileId
-            ? { ...f, status: 'success', chunks: data.chunks_ingested }
+            ? { ...f, status: 'success', chunks: data.chunks_ingested, notice: data.indexed === false ? data.message : undefined }
             : f
         )
       );
@@ -99,7 +102,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ user }) => {
         throw new Error('Not authenticated. Please sign in.');
       }
 
-      const savedKeys = JSON.parse(localStorage.getItem('hivemind_api_keys') || '{}');
+      const savedKeys = JSON.parse(apiKeyStorage.getItem('hivemind_api_keys') || '{}');
       const token = savedKeys.github || savedKeys.github_token || '';
 
       const res = await fetch(getApiUrl('/api/github/ingest'), {
@@ -331,6 +334,10 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ user }) => {
                   ))}
                 </div>
               )}
+
+              {files.filter(f => f.notice).map(f => (
+                <p key={f.id} role="status" className="text-[10px] text-amber-300 leading-relaxed px-1">{f.name}: {f.notice}</p>
+              ))}
 
               {/* Error details */}
               {files.some(f => f.status === 'error') && (
