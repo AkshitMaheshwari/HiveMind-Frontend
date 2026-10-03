@@ -181,7 +181,7 @@ export const DocumentUpload: React.FC<DocumentUploadProps> = ({ user }) => {
           </span>
           {successCount > 0 && (
             <span className="text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded-full">
-              {successCount} indexed
+              {successCount} saved
             </span>
           )}
         </div>

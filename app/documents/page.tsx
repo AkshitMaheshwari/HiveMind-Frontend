@@ -15,6 +15,9 @@ interface IndexedDoc {
   source_type: string;
   chunk_count: number;
   created_at: string;
+  available_for_analysis?: boolean;
+  indexed?: boolean | null;
+  search_status?: 'indexed' | 'not_indexed' | 'unavailable';
 }
 
 interface UploadingFile {
@@ -23,6 +26,9 @@ interface UploadingFile {
   status: 'uploading' | 'success' | 'error';
   chunks?: number;
   error?: string;
+  indexed?: boolean;
+  availableForAnalysis?: boolean;
+  notice?: string;
 }
 
 function FileIcon({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' | 'lg' }) {
@@ -113,7 +119,9 @@ export default function DocumentsPage() {
 
       const data = await res.json();
       setUploadingFiles(prev =>
-        prev.map(f => f.id === fileId ? { ...f, status: 'success', chunks: data.chunks_ingested } : f)
+        prev.map(f => f.id === fileId ? { ...f, status: 'success', chunks: data.chunks_ingested,
+          indexed: data.indexed, availableForAnalysis: data.available_for_analysis,
+          notice: data.indexed === false ? data.message : undefined } : f)
       );
       // Refresh the doc list after successful upload
       fetchDocs(true);
@@ -165,7 +173,7 @@ export default function DocumentsPage() {
   return (
     <div className="min-h-screen bg-[var(--bg-main)] font-sans antialiased text-slate-100">
       {/* Header */}
-      <header className="sticky top-0 z-20 h-16 border-b border-slate-800 bg-[var(--bg-surface)]/90 backdrop-blur-md px-6 flex items-center justify-between">
+      <header className="sticky top-0 z-20 min-h-16 gap-3 py-3 border-b border-slate-800 bg-[var(--bg-surface)]/90 backdrop-blur-md px-4 sm:px-6 flex flex-wrap items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400">
             <Sparkles className="w-5 h-5" />
@@ -176,7 +184,7 @@ export default function DocumentsPage() {
           </div>
         </div>
 
-        <nav className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
+        <nav className="order-last w-full sm:order-none sm:w-auto flex items-center justify-center gap-1 bg-slate-900/60 p-1 rounded-xl border border-slate-800">
           <a href="/" className="px-4 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/50 transition-all">
             Dashboard
           </a>
@@ -211,7 +219,7 @@ export default function DocumentsPage() {
           <div>
             <h2 className="text-2xl font-bold text-slate-100">My Knowledge Base</h2>
             <p className="text-sm text-slate-400 mt-1">
-              Upload documents to give your agents long-term memory. Vectors are stored permanently in Qdrant Cloud.
+              Upload files for your agents. Saved spreadsheets support analysis; document search requires successful indexing.
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -289,12 +297,14 @@ export default function DocumentsPage() {
                   }`}
                 >
                   <FileIcon name={f.name} size="md" />
-                  <span className="flex-1 truncate text-slate-300 text-sm">{f.name}</span>
+                  <span className="min-w-0 flex-1 truncate text-slate-300 text-sm">{f.name}</span>
                   {f.status === 'uploading' && <Loader2 className="w-4 h-4 text-amber-400 animate-spin flex-shrink-0" />}
                   {f.status === 'success' && (
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                      <span className="text-xs text-emerald-400">{f.chunks} chunks indexed</span>
+                    <div className="flex items-center gap-1.5 max-w-[50%] sm:max-w-none">
+                      <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+                      <span className="text-xs text-emerald-400" title={f.notice}>{f.indexed === false
+                        ? (f.availableForAnalysis ? 'Saved for analysis; search unavailable' : 'Search indexing unavailable')
+                        : `${f.chunks} chunks indexed`}</span>
                     </div>
                   )}
                   {f.status === 'error' && (
@@ -316,7 +326,7 @@ export default function DocumentsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-              Indexed Documents
+              Your Documents
             </h3>
             {docs.length > 0 && (
               <div className="relative flex-1 max-w-xs">
@@ -359,7 +369,7 @@ export default function DocumentsPage() {
               </div>
               <div>
                 <p className="text-sm font-medium text-slate-300">
-                  {query ? `No documents matching "${query}"` : 'No documents indexed yet'}
+                  {query ? `No documents matching "${query}"` : 'No documents uploaded yet'}
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
                   {query ? 'Try a different search term.' : 'Upload a PDF, Excel, or CSV file above to get started.'}
@@ -369,10 +379,10 @@ export default function DocumentsPage() {
           ) : (
             <div className="rounded-2xl border border-slate-800 overflow-hidden">
               {/* Table header */}
-              <div className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 items-center px-5 py-3 bg-slate-900/70 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] gap-2 sm:gap-4 items-center px-3 sm:px-5 py-3 bg-slate-900/70 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
                 <span className="w-8" />
                 <span>Document</span>
-                <span className="text-right">Type</span>
+                <span className="hidden sm:block text-right">Type</span>
                 <span className="text-right">Chunks</span>
                 <span className="w-8" />
               </div>
@@ -382,7 +392,7 @@ export default function DocumentsPage() {
                 {filteredDocs.map(doc => (
                   <div
                     key={doc.source_identifier}
-                    className="grid grid-cols-[auto_1fr_auto_auto_auto] gap-4 items-center px-5 py-4 hover:bg-slate-800/30 transition-all group"
+                    className="grid grid-cols-[auto_minmax(0,1fr)_auto_auto] sm:grid-cols-[auto_minmax(0,1fr)_auto_auto_auto] gap-2 sm:gap-4 items-center px-3 sm:px-5 py-4 hover:bg-slate-800/30 transition-all group"
                   >
                     {/* Icon */}
                     <div className="w-8 h-8 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center flex-shrink-0">
@@ -394,10 +404,18 @@ export default function DocumentsPage() {
                       <p className="text-sm font-medium text-slate-200 truncate" title={doc.source_identifier}>
                         {doc.source_identifier}
                       </p>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px]">
+                        {doc.available_for_analysis && <span className="text-emerald-400">Analysis ready</span>}
+                        <span className={doc.search_status === 'unavailable' ? 'text-amber-400' : 'text-slate-400'}>
+                          {doc.search_status === 'unavailable' ? 'Search unavailable' : doc.indexed || doc.chunk_count > 0 ? 'Search indexed' : 'Not indexed for search'}
+                        </span>
+                        {doc.available_for_analysis === false && /\.(xlsx?|csv)$/i.test(doc.source_identifier) &&
+                          <span className="text-amber-400">Original file needed for analysis</span>}
+                      </div>
                     </div>
 
                     {/* Type */}
-                    <span className={`text-[10px] font-semibold px-2 py-1 rounded-lg border uppercase tracking-wide ${
+                    <span className={`hidden sm:block text-[10px] font-semibold px-2 py-1 rounded-lg border uppercase tracking-wide ${
                       doc.source_type === 'pdf' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
                       doc.source_type === 'xlsx' || doc.source_type === 'xls' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
                       'bg-sky-500/10 text-sky-400 border-sky-500/20'
@@ -409,7 +427,7 @@ export default function DocumentsPage() {
                     <div className="flex items-center gap-1.5 text-right">
                       <Sparkles className="w-3 h-3 text-purple-400 flex-shrink-0" />
                       <span className="text-xs text-slate-300 font-mono font-medium">
-                        {doc.chunk_count.toLocaleString()}
+                        {doc.search_status === 'unavailable' ? '—' : doc.chunk_count.toLocaleString()}
                       </span>
                     </div>
 

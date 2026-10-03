@@ -7,7 +7,41 @@ export interface TaskEvent {
   data?: string;
   agent?: string;
   department?: string;
+  departments?: string[];
+  depends_on?: string[];
+  subtasks?: { department: string; depends_on?: string[] }[];
   timestamp?: string;
+}
+
+export interface DepartmentProgress {
+  name: string;
+  status: 'waiting' | 'running' | 'done' | 'error' | 'skipped' | 'stopped' | 'unknown';
+  dependsOn: string[];
+  detail?: string;
+}
+
+export function updateDepartmentProgress(previous: DepartmentProgress[], event: TaskEvent): DepartmentProgress[] {
+  if (event.event === 'ceo_plan_ready' && Array.isArray(event.departments)) {
+    return event.departments.map(name => previous.find(item => item.name === name) || {
+      name, status: 'waiting', dependsOn: event.subtasks?.find(task => task.department === name)?.depends_on || [],
+    });
+  }
+  const statuses: Record<string, DepartmentProgress['status']> = {
+    department_waiting: 'waiting', department_started: 'running', department_done: 'done',
+    department_error: 'error', department_skipped: 'skipped',
+  };
+  const status = statuses[event.event];
+  if (status && event.department) {
+    const existing = previous.find(item => item.name === event.department);
+    const updated: DepartmentProgress = { name: event.department, status,
+      dependsOn: event.depends_on || existing?.dependsOn || [], detail: event.data };
+    return existing ? previous.map(item => item.name === event.department ? updated : item) : [...previous, updated];
+  }
+  if (['task_cancelled', 'error', 'task_done'].includes(event.event)) {
+    return previous.map(item => ['waiting', 'running'].includes(item.status)
+      ? { ...item, status: event.event === 'task_cancelled' ? 'stopped' : event.event === 'task_done' ? 'unknown' : 'error', detail: 'Work did not report completion.' } : item);
+  }
+  return previous;
 }
 
 /** Own every socket/timer for a task. Poll only for recovery, never concurrently. */
@@ -51,14 +85,17 @@ export function watchTask(
       const task = await response.json();
       if (disposed || finished) return;
       if (['done', 'error', 'cancelled'].includes(task.status)) {
+        if (task.task_plan?.departments) deliver({ event: 'ceo_plan_ready',
+          departments: task.task_plan.departments, subtasks: task.task_plan.subtasks });
         for (const entry of task.events || []) {
-          if (['charts_json', 'metrics'].includes(entry.event_type || entry.event)) {
+          if (['charts_json', 'metrics', 'department_started', 'department_done', 'department_error', 'department_skipped'].includes(entry.event_type || entry.event)) {
             deliver({ ...entry, event: entry.event_type || entry.event });
           }
         }
         if (task.final_output) deliver({ event: 'partial_output', data: task.final_output });
         if (task.status === 'error') deliver({ event: 'error', data: task.error || 'Task failed. Please retry.' });
         if (task.status === 'cancelled') deliver({ event: 'task_cancelled', data: 'Stopped.' });
+        if (task.status === 'done') deliver({ event: 'task_done', data: 'Complete.' });
         complete();
       }
     } catch {
@@ -82,6 +119,7 @@ export function watchTask(
       if (event.sequence && event.sequence <= sequence) return;
       sequence = event.sequence || sequence;
       if (event.event === 'task_done') {
+        deliver(event);
         // Do not mark finished before fetching a missing final response.
         if (hasOutput) complete(); else void poll();
         return;

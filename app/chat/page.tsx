@@ -13,7 +13,7 @@ import { ModelSelector, ModelConfig } from '@/components/ModelSelector';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { getApiUrl } from '@/lib/config';
-import { watchTask, TaskEvent } from '@/lib/task-stream';
+import { watchTask, TaskEvent, DepartmentProgress, updateDepartmentProgress } from '@/lib/task-stream';
 
 interface ChatMessage {
   id: string;
@@ -60,7 +60,7 @@ function ChatPageContent() {
   const activeTaskRef = useRef<string | null>(null);
   const submittingRef = useRef(false);
   const [mode, setMode] = useState<'fast' | 'balanced' | 'thorough'>('balanced');
-  const [department, setDepartment] = useState('');
+  const [departments, setDepartments] = useState<DepartmentProgress[]>([]);
   const [activity, setActivity] = useState('');
   const [mobileHistory, setMobileHistory] = useState(false);
   const [lastPrompt, setLastPrompt] = useState('');
@@ -179,6 +179,7 @@ function ChatPageContent() {
     submittingRef.current = false;
     setLoading(false);
     setActivity('');
+    setDepartments([]);
   };
 
   const subscribeToTask = (taskId: string, conversationId: string, token: string) => {
@@ -203,6 +204,7 @@ function ChatPageContent() {
     };
     const dispose = watchTask(taskId, token, event => {
       if (!current()) return;
+      setDepartments(previous => updateDepartmentProgress(previous, event));
       if (event.event === 'partial_output') {
         content = event.data || '';
         if (!frame) frame = setTimeout(() => render(true), 50);
@@ -301,6 +303,7 @@ function ChatPageContent() {
     setCanRetry(false);
     setLoading(true);
     setActivity('Sending your request...');
+    setDepartments([]);
     setMessages(previous => [...previous, { id: `user-${generateUUID()}`, role: 'user', content: prompt }]);
     try {
       const { data: { session } } = await supabase.auth.getSession();
@@ -309,7 +312,7 @@ function ChatPageContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify({ message: prompt, conversation_id: conversationId,
-          api_keys: getApiKeysForRequest(), selected_model: modelConfig.modelId, mode, department: department || null }),
+          api_keys: getApiKeysForRequest(), selected_model: modelConfig.modelId, mode }),
       });
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
@@ -405,8 +408,7 @@ function ChatPageContent() {
             <ChatThread
               mode={mode}
               onModeChange={setMode}
-              department={department}
-              onDepartmentChange={setDepartment}
+              departments={departments}
               activity={activity}
               onStop={handleStop}
               cancelling={cancelling}

@@ -9,6 +9,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import type { DepartmentProgress } from '@/lib/task-stream';
 const AnalyticsCharts = dynamic(() => import('./AnalyticsCharts'), { ssr: false });
 
 interface ChatMessage {
@@ -22,8 +23,7 @@ interface ChatMessage {
 interface ChatThreadProps {
   mode: 'fast' | 'balanced' | 'thorough';
   onModeChange: (mode: 'fast' | 'balanced' | 'thorough') => void;
-  department: string;
-  onDepartmentChange: (department: string) => void;
+  departments: DepartmentProgress[];
   activity: string;
   onStop: () => void;
   cancelling: boolean;
@@ -175,7 +175,7 @@ const MarkdownContent = memo(function MarkdownContent({ content }: { content: st
 
 // ─── Main ChatThread Component ────────────────────────────────────────────────
 export const ChatThread: React.FC<ChatThreadProps> = ({
-  mode, onModeChange, department, onDepartmentChange, activity, onStop, cancelling, onRetry,
+  mode, onModeChange, departments, activity, onStop, cancelling, onRetry,
   messages,
   onSubmitPrompt,
   loading,
@@ -641,15 +641,17 @@ export const ChatThread: React.FC<ChatThreadProps> = ({
               className="rounded-lg bg-slate-900 border border-slate-700 px-2 py-1.5 text-slate-200">
               <option value="fast">Fast</option><option value="balanced">Balanced</option><option value="thorough">Thorough</option>
             </select>
-            <label className="text-slate-400 ml-1" htmlFor="department">Team</label>
-            <select id="department" value={department} disabled={loading} onChange={event => onDepartmentChange(event.target.value)}
-              className="rounded-lg bg-slate-900 border border-slate-700 px-2 py-1.5 text-slate-200 max-w-40">
-              <option value="">Auto-select</option>
-              {['research', 'content', 'code', 'document', 'financial', 'analytics', 'strategy', 'legal', 'sales', 'design'].map(value =>
-                <option key={value} value={value}>{value[0].toUpperCase() + value.slice(1)}</option>)}
-            </select>
+            <span className="text-slate-400">CEO assigns departments automatically</span>
             <span className="text-slate-500 hidden lg:inline">{mode === 'fast' ? 'Fewer optional reviews' : mode === 'thorough' ? 'More review where useful' : 'A balance of speed and review'}</span>
           </div>
+          {departments.length > 0 && <div role="region" aria-label="Department progress" aria-live="polite" className="flex flex-wrap gap-2 max-h-24 overflow-y-auto text-xs">
+            {departments.map(department => <div key={department.name} title={department.detail}
+              className={`rounded-lg border px-2.5 py-1.5 ${department.status === 'done' ? 'border-emerald-800 text-emerald-300 bg-emerald-950/30' : ['error', 'skipped'].includes(department.status) ? 'border-rose-900 text-rose-300 bg-rose-950/30' : 'border-slate-700 text-slate-300 bg-slate-900'}`}>
+              <span className="capitalize font-medium">{department.name}</span>: {department.status === 'waiting'
+                ? (department.dependsOn.length ? `Waiting for ${department.dependsOn.join(', ')}` : 'Queued')
+                : ({ running: 'Running', done: 'Done', error: 'Incomplete', skipped: 'Skipped', stopped: 'Stopped', unknown: 'Status unavailable' })[department.status]}
+            </div>)}
+          </div>}
           {(activity || loading || onRetry) && <div role="status" aria-live="polite" className="flex items-center justify-between gap-3 text-xs text-amber-300 px-1 py-1">
             <span className="truncate">{activity || (onRetry ? 'The request could not finish.' : 'Working...')}{loading ? ` · ${elapsed}s` : ''}</span>
             {onRetry && !loading && <button type="button" onClick={onRetry} className="underline shrink-0">Retry request</button>}
